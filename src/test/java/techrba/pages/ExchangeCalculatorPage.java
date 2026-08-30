@@ -16,6 +16,10 @@ import techrba.base.WaitStrategy;
 import techrba.util.DecimalParser;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 
 /**
  * Page Object for the RBA exchange-rate calculator.
@@ -41,6 +45,13 @@ public class ExchangeCalculatorPage {
     private static final By DATE_LABEL = By.id("dateVal");         // UI label mirroring the chosen date
     private static final By SWITCH_CURRENCY_LINK = By.id("switchCurrency");
     private static final By EFFECTIVE_SECTION = By.id("acctContainer"); // shown for Kupovni/Prodajni only
+
+    // Mobiscroll date-picker bubble DOM (opened by clicking #d).
+    private static final By DATE_PICKER_DAY = By.cssSelector(".mbsc-cal-day");      // data-full="yyyy-M-d" (M is 0-based)
+    private static final By DATE_PICKER_PREV_MONTH = By.cssSelector(".mbsc-cal-prev-m .mbsc-cal-btn-txt");
+    private static final By DATE_PICKER_NEXT_MONTH = By.cssSelector(".mbsc-cal-next-m .mbsc-cal-btn-txt");
+    private static final By DATE_PICKER_PREV_YEAR = By.cssSelector(".mbsc-cal-prev-y .mbsc-cal-btn-txt");
+    private static final By DATE_PICKER_NEXT_YEAR = By.cssSelector(".mbsc-cal-next-y .mbsc-cal-btn-txt");
 
     private final WebDriver driver;
     private final DriverWait wait;
@@ -116,22 +127,74 @@ public class ExchangeCalculatorPage {
     }
 
     /**
-     * Sets the exchange date ({@code #d}, format {@code dd.MM.yyyy}). A TAB
-     * (blur) triggers the recalculation instead of Enter, matching the amount
-     * field behaviour. The backend may rewrite the date to the latest value it
-     * has rates for.
+     * Selects an exchange date via the Mobiscroll date picker: opens the calendar
+     * bubble by clicking the (readonly) {@code #d} field, navigates to the
+     * requested month/year and taps the target day cell. {@code #dateVal} then
+     * shows the picked date.
+     *
+     * <p>Direct typing is impossible because the field is <em>readonly</em> once
+     * Mobiscroll is attached, so this is the only realistic user interaction.</p>
      *
      * @param date dotted date string, e.g. {@code 15.03.2026}
      */
-    @Step("Set exchange date {date}")
+    @Step("Select exchange date {date} via the date picker")
     public ExchangeCalculatorPage setDate(String date) {
-        WebElement field = wait.get().until(ExpectedConditions.visibilityOfElementLocated(DATE_INPUT));
-        field.sendKeys(Keys.chord(Keys.CONTROL, "a"));
-        field.sendKeys(date);
-        new Actions(driver).sendKeys(Keys.TAB).perform();
+        LocalDate target = LocalDate.parse(date, DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+        YearMonth targetYm = YearMonth.from(target);
+
+        // Open the Mobiscroll calendar bubble.
+        wait.get().until(ExpectedConditions.elementToBeClickable(DATE_INPUT)).click();
+        // The bubble renders 3 month slides but only the current month is visible;
+        // wait until at least one day cell is actually displayed (not just present).
+        wait.get().until(d -> d.findElements(DATE_PICKER_DAY).stream().anyMatch(WebElement::isDisplayed));
+
+        // The bubble opens on the month already shown in the field (#d).
+        String currentVal = driver.findElement(DATE_INPUT).getAttribute("value");
+        LocalDate current = currentVal == null || currentVal.trim().isEmpty()
+                ? LocalDate.now()
+                : LocalDate.parse(currentVal, DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+        long monthDiff = ChronoUnit.MONTHS.between(YearMonth.from(current), targetYm);
+
+        // Navigate years first for large jumps, then the remaining months.
+        while (monthDiff <= -12) {
+            clickDatePickerButton(DATE_PICKER_PREV_YEAR);
+            monthDiff += 12;
+        }
+        while (monthDiff >= 12) {
+            clickDatePickerButton(DATE_PICKER_NEXT_YEAR);
+            monthDiff -= 12;
+        }
+        while (monthDiff < 0) {
+            clickDatePickerButton(DATE_PICKER_PREV_MONTH);
+            monthDiff++;
+        }
+        while (monthDiff > 0) {
+            clickDatePickerButton(DATE_PICKER_NEXT_MONTH);
+            monthDiff--;
+        }
+
+        // data-full uses a 0-based month: "2026-2-5" for 05.03.2026.
+        String full = target.getYear() + "-" + (target.getMonthValue() - 1) + "-" + target.getDayOfMonth();
+        By targetDay = By.cssSelector(".mbsc-cal-day[data-full='" + full + "']");
+        // The same date can appear as a hidden "diff" cell in the neighbouring slides,
+        // so only the displayed cell of the active month is the real one.
+        WebElement day = wait.get().until(d -> d.findElements(targetDay).stream()
+                .filter(WebElement::isDisplayed)
+                .findFirst()
+                .orElse(null));
+        LOG.debug("Tapping day cell data-full={} (aria-label='{}')", full, day.getAttribute("aria-label"));
+        day.click();
+
         waitForExchangeResult();
-        LOG.debug("Date field '#d' value after setting {} = '{}'", date, field.getAttribute("value"));
+        LOG.debug("Date field '#d' value after picker selection '{}' = '{}'", date,
+                driver.findElement(DATE_INPUT).getAttribute("value"));
         return this;
+    }
+
+    private void clickDatePickerButton(By locator) {
+        wait.get().until(ExpectedConditions.elementToBeClickable(locator)).click();
+        // Allow the calendar grid to re-render before the next navigation click.
+        DriverWait.sleepQuietly(200);
     }
 
     /** Returns the date the backend accepted ({@code #d} after the last calculation). */

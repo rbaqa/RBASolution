@@ -1,7 +1,6 @@
 package techrba.selenium;
 
 import io.qameta.allure.Description;
-import io.qameta.allure.Step;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -10,49 +9,47 @@ import techrba.base.BaseCalculatorTest;
 import techrba.pages.ExchangeCalculatorPage;
 
 /**
- * Verifies the date label of the RBA exchange calculator.
+ * Verifies the date picker of the RBA exchange calculator: after a date is
+ * selected in the Mobiscroll calendar the "{@code Tecaj na dan:}" label
+ * ({@code #dateVal}) must show the same date as the one picked.
  *
- * <p>The "{@code Tecaj na dan:}" label ({@code #dateVal}) is kept in sync with
- * the date field ({@code #d}): the page JS sets it to the value of {@code #d}
- * on every recalculation ({@code $('#dateVal').html('&nbsp;' + $('#d').val())}).
- * This test checks that after a date change + recalculation the label mirrors
- * the date shown in the picker field.</p>
- *
- * <p>Important environment note: the simulated backend serves a single (latest)
- * rate series and normalizes any historical date entered into the picker back
- * to the current latest date. So this test asserts the verified UI contract
- * that both the picker ({@code #d}) and the label ({@code #dateVal}) end up in
- * sync after a change, rather than asserting a specific historical date sticks.</p>
+ * <p>The {@code #d} field is readonly once Mobiscroll is attached, so the date
+ * can only be changed by opening the calendar bubble and tapping a day. The
+ * page JS then sets {@code #dateVal} to {@code &nbsp; + $('#d').val()} on the
+ * next recalculation, i.e. the label mirrors the chosen date.</p>
  */
 public class ExchangeCalculatorDateTest extends BaseCalculatorTest {
 
     @Test(groups = {"selenium", "ui", "exchange"})
-    @Description("The #dateVal label stays in sync with the date shown in the date picker")
+    @Description("The #dateVal label shows the date selected in the date picker")
     @Requirement({"S8"})
-    public void dateLabelMirrorsDatePicker() {
+    public void dateLabelMirrorsSelectedDate() {
         ExchangeCalculatorPage calc = openCalculator();
 
-        String[] dates = {"05.03.2026", "09.07.2026"};
+        // A business day in the same month, a different month and a day in the past.
+        String[] dates = {"07.08.2026", "05.03.2026", "14.08.2026"};
         for (String selected : dates) {
             calc.setDate(selected);
+
             String label = calc.readSelectedDateLabel();
             String picker = calc.readAppliedDate();
 
-            LOG.info("Changed picker to {} -> #dateVal '{}', #d '{}'",
-                    selected, label, picker);
+            LOG.info("Picked {} -> #dateVal '{}', picker '#d' '{}'", selected, label, picker);
 
-            // The label and the picker must always agree on the displayed date
-            // (both are updated together by the recalculation JS).
             Assert.assertEquals(
                     normalize(label),
+                    normalize(selected),
+                    "#dateVal label must show the date selected in the picker (picked '" + selected
+                            + "', label '" + label + "')");
+            Assert.assertEquals(
                     normalize(picker),
-                    "#dateVal label '"
-                            + label + "' must mirror the date shown in the picker '#d' '" + picker + "'");
+                    normalize(selected),
+                    "Picker field #d must hold the selected date (picked '" + selected
+                            + "', field '" + picker + "')");
         }
     }
 
     /** Lowercase/trim a dotted date so the comparison ignores case/whitespace. */
-    @Step("Normalize date for comparison")
     private static String normalize(String d) {
         return d == null ? "" : d.trim().toLowerCase();
     }
