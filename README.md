@@ -245,9 +245,13 @@ stays fast while full validation still runs on every merge:
 
 **https://rbaqa.github.io/RBASolution/**
 
-Published by the `allure-report-pages` job from the last full Linux regression.
-**One-time repo setup required:** GitHub → Settings → Pages → *Deploy from a
-branch* → `gh-pages / root`.
+Published by the `allure-report-pages` job from the last full Linux regression,
+using the modern `actions/deploy-pages` deployment (Pages API - no branch
+commits, no token-in-URL, works on public and private repos).
+
+**One-time repo setup required** (the only manual step - GitHub requires Pages
+to be enabled): GitHub → Settings → Pages → **Source: *GitHub Actions***.
+That's it - no branch to select, nothing else to configure.
 
 ---
 

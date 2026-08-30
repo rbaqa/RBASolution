@@ -278,8 +278,16 @@ jobs:
   #   https://rbaqa.github.io/RBASolution/
   # Generated from the Linux lifecycle run (the full regression), not the PR
   # smoke gate, so the published report always reflects a complete run.
-  # Requires "GitHub Pages: Deploy from a branch -> gh-pages / root" enabled in
-  # repo settings (and needs: only the accepting branch, see 'if' below).
+  #
+  # Uses the modern, officially-supported Pages deployment (actions/deploy-pages)
+  # backed by the Pages API - no branch commits and no token-in-URL, so it works
+  # on public and private repos alike.
+  #
+  # REQUIRED one-time repo setting (unavoidable - Pages must be enabled):
+  #   Settings -> Pages -> Source: "GitHub Actions"
+  #   (NOT "Deploy from a branch"). That's the only manual step; no branch or
+  #   workflow/API config is needed after that.
+  #
   # The job runs only when the workflow was triggered on master from a
   # push/schedule/manual dispatch.
   # ---------------------------------------------------------------------------
@@ -290,7 +298,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
-      contents: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
       - name: Checkout
@@ -312,18 +324,14 @@ jobs:
       - name: Generate Allure HTML report
         run: ./mvnw -B allure:report
 
-      - name: Deploy Allure report to gh-pages branch
-        env:
-          DEPLOY_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd reports/allure-report
-          git init -q
-          git checkout -q -b gh-pages
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git remote add origin "https://x-access-token:${DEPLOY_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git add -A
-          git commit -q -m "Publish Allure report for ${GITHUB_SHA:0:7} (run ${GITHUB_RUN_NUMBER})"
-          git push -q -f origin gh-pages
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: reports/allure-report
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
