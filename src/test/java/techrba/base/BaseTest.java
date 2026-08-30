@@ -3,6 +3,7 @@ package techrba.base;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebDriverException;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.BeforeSuite;
@@ -52,8 +53,15 @@ public abstract class BaseTest {
     protected void tearDown() {
         WebDriver driver = DRIVER.get();
         if (driver != null) {
-            driver.quit();
-            DRIVER.remove();
+            try {
+                driver.quit();
+            } catch (WebDriverException e) {
+                LOG.warn("Browser teardown finished with a warning (Selenium's 3s "
+                        + "driver-server shutdown wait elapsed on this host): {}",
+                        e.getMessage());
+            } finally {
+                DRIVER.remove();
+            }
         }
     }
 
