@@ -1,0 +1,12 @@
+# Optional convenience to run the QA suite in a container.
+# Usage:  docker compose -f docker/docker-compose.yml up --build
+services:
+  rba-qa:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: rba-qa
+    environment:
+      ENV_BROWSER_HEADLESS: "true"
+    volumes:
+      - ../reports:/workspace/reports

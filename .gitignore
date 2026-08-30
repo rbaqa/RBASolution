@@ -1,0 +1,33 @@
+# Maven build output
+target/
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Reports (generated at runtime)
+reports/
+test-output/
+surefire-reports/
+
+# Local environment / secrets
+.env
+local.properties
+credentials.properties
+*.secret
+
+# Maven wrapper jar is committed; keep everything else
+# (wrapper jar checked in deliberately for reproducibility)

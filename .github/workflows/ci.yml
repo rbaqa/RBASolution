@@ -1,0 +1,60 @@
+name: RBA QA CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Build & run QA suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java (JDK 8)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '8'
+          cache: maven
+
+      # Ubuntu runners ship with a recent Google Chrome; WebDriverManager
+      # resolves the matching chromedriver automatically.
+
+      - name: Configure headless browser
+        shell: bash
+        run: |
+          echo "Running headless: override browser.headless via env"
+          echo "ENV_BROWSER_HEADLESS=true" >> "$GITHUB_ENV"
+
+      - name: Run full test suite (unit + API + Selenium headless)
+        run: ./mvnw -B -Dsuite.file=testng.xml test
+        env:
+          ENV_BROWSER_HEADLESS: "true"
+
+      - name: Upload classic TestNG/Surefire reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports
+
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results
+          path: reports/allure-results
+
+      - name: Upload screenshots (UI failures)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: reports/screenshots

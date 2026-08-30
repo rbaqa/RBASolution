@@ -1,0 +1,43 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://techrba/wikipedia-response-schema",
+  "title": "Wikipedia search response",
+  "description": "Validates the MediaWiki API response for a generator=search query",
+  "type": "object",
+  "required": ["query"],
+  "properties": {
+    "batchcomplete": {
+      "type": ["string", "null"]
+    },
+    "continue": {
+      "type": ["object", "null"]
+    },
+    "query": {
+      "type": "object",
+      "required": ["pages"],
+      "properties": {
+        "pages": {
+          "type": "object",
+          "patternProperties": {
+            "^[0-9]+$": {
+              "type": "object",
+              "required": ["pageid", "ns", "title", "index"],
+              "properties": {
+                "pageid": { "type": "integer" },
+                "ns": { "type": "integer" },
+                "title": { "type": "string" },
+                "index": { "type": "integer" },
+                "contentmodel": { "type": "string" },
+                "length": { "type": "integer" }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

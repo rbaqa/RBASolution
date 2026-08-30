@@ -1,0 +1,231 @@
+{
+  "info": {
+    "_postman_id": "1f2a3b4c-5d6e-7f80-9abc-def012345678",
+    "name": "RBA QA Automation - REST API Tests",
+    "description": "Postman collection for the RBA Senior QA task:\n1. Basic REST - replicates the Selenium exchange calculator example via the RBA calculateExchangeRate endpoint.\n2. Wikipedia basic search - returns first 10 results and validates the response.\n\nUses environment variables defined in RBA_Environment.json.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "event": [],
+  "variable": [],
+  "item": [
+    {
+      "name": "Basic REST - Buy GBP / Sell USD (exchange rate)",
+      "item": [
+        {
+          "name": "Buy GBP (kupnja funti) - Prodajni tecaj",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Response code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is below 5 seconds', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+                  "});",
+                  "",
+                  "pm.test('Response returns exchange rate and final amount', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.form).to.exist;",
+                  "    const rate = parseFloat(json.form.exchangeRate);",
+                  "    const amount = parseFloat(json.form.currency2Ammount);",
+                  "    pm.expect(rate).to.be.above(0);",
+                  "    pm.expect(amount).to.be.above(0);",
+                  "    pm.expect(amount).to.be.closeTo(rate * 40, 1);",
+                  "    pm.environment.set('BUY_RATE', rate);",
+                  "    pm.environment.set('BUY_AMOUNT', amount);",
+                  "    console.log('BUY GBP: 1 EUR = ' + rate + ' GBP; 40 EUR = ' + amount + ' GBP');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{calculatorUrl}}?p_p_id=tecajKalkulator_WAR_calculatorsportlet&p_p_lifecycle=2&p_p_state=normal&p_p_mode=view&p_p_resource_id=calculateExchangeRate&p_p_cacheability=cacheLevelPage&p_p_col_id=column-4&p_p_col_count=1",
+              "host": ["{{calculatorHost}}"],
+              "path": ["alati", "tecajni-kalkulator"],
+              "query": [
+                { "key": "p_p_id", "value": "tecajKalkulator_WAR_calculatorsportlet" },
+                { "key": "p_p_lifecycle", "value": "2" },
+                { "key": "p_p_state", "value": "normal" },
+                { "key": "p_p_mode", "value": "view" },
+                { "key": "p_p_resource_id", "value": "calculateExchangeRate" },
+                { "key": "p_p_cacheability", "value": "cacheLevelPage" },
+                { "key": "p_p_col_id", "value": "column-4" },
+                { "key": "p_p_col_count", "value": "1" }
+              ]
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "source", "value": "FIRST", "type": "text" },
+                { "key": "currency1Id", "value": "978", "type": "text", "description": "EUR" },
+                { "key": "currency1Ammount", "value": "40", "type": "text" },
+                { "key": "currency2Id", "value": "826", "type": "text", "description": "GBP" },
+                { "key": "currency2Ammount", "value": "", "type": "text" },
+                { "key": "date", "value": "{{exchangeDate}}", "type": "text" },
+                { "key": "type", "value": "2", "type": "text", "description": "2 = Prodajni tecaj" }
+              ]
+            },
+            "description": "Replicates the Selenium 'Buy GBP' example using the same backend REST endpoint the UI calculator calls. Type 2 = Prodajni (bank sells GBP to the customer)."
+          }
+        },
+        {
+          "name": "Sell USD (prodaja dolara) - Kupovni tecaj",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Response code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is below 5 seconds', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+                  "});",
+                  "",
+                  "pm.test('Response returns exchange rate and final amount', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.form).to.exist;",
+                  "    const rate = parseFloat(json.form.exchangeRate);",
+                  "    const amount = parseFloat(json.form.currency2Ammount);",
+                  "    pm.expect(rate).to.be.above(0);",
+                  "    pm.expect(amount).to.be.above(0);",
+                  "    pm.expect(amount).to.be.closeTo(rate * 100, 1);",
+                  "    pm.environment.set('SELL_RATE', rate);",
+                  "    pm.environment.set('SELL_AMOUNT', amount);",
+                  "    console.log('SELL USD: 1 USD = ' + rate + ' EUR; 100 USD = ' + amount + ' EUR');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{calculatorUrl}}?p_p_id=tecajKalkulator_WAR_calculatorsportlet&p_p_lifecycle=2&p_p_state=normal&p_p_mode=view&p_p_resource_id=calculateExchangeRate&p_p_cacheability=cacheLevelPage&p_p_col_id=column-4&p_p_col_count=1",
+              "host": ["{{calculatorHost}}"],
+              "path": ["alati", "tecajni-kalkulator"],
+              "query": [
+                { "key": "p_p_id", "value": "tecajKalkulator_WAR_calculatorsportlet" },
+                { "key": "p_p_lifecycle", "value": "2" },
+                { "key": "p_p_state", "value": "normal" },
+                { "key": "p_p_mode", "value": "view" },
+                { "key": "p_p_resource_id", "value": "calculateExchangeRate" },
+                { "key": "p_p_cacheability", "value": "cacheLevelPage" },
+                { "key": "p_p_col_id", "value": "column-4" },
+                { "key": "p_p_col_count", "value": "1" }
+              ]
+            },
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                { "key": "source", "value": "FIRST", "type": "text" },
+                { "key": "currency1Id", "value": "840", "type": "text", "description": "USD" },
+                { "key": "currency1Ammount", "value": "100", "type": "text" },
+                { "key": "currency2Id", "value": "978", "type": "text", "description": "EUR" },
+                { "key": "currency2Ammount", "value": "", "type": "text" },
+                { "key": "date", "value": "{{exchangeDate}}", "type": "text" },
+                { "key": "type", "value": "0", "type": "text", "description": "0 = Kupovni tecaj" }
+              ]
+            },
+            "description": "Replicates the Selenium 'Sell USD' example via REST. Type 0 = Kupovni (bank buys USD from the customer)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Wikipedia - basic search 'Raiffeisen'",
+      "item": [
+        {
+          "name": "Search Raiffeisen - validate 200, time, pages, title",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Response code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response time is below 5 seconds', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+                  "});",
+                  "",
+                  "pm.test('Response contains a pages object', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(json.query).to.have.property('pages');",
+                  "    pm.expect(Object.keys(json.query.pages)).to.have.length.gte(1);",
+                  "});",
+                  "",
+                  "pm.test('Some page has title Raiffeisen Bank International', function () {",
+                  "    const json = pm.response.json();",
+                  "    const pages = json.query.pages;",
+                  "    const titles = Object.values(pages).map(p => p.title);",
+                  "    pm.expect(titles).to.include('Raiffeisen Bank International');",
+                  "    pm.environment.set('WIKI_TITLES', JSON.stringify(titles));",
+                  "});",
+                  "",
+                  "pm.test('Returns first 10 results', function () {",
+                  "    const json = pm.response.json();",
+                  "    pm.expect(Object.keys(json.query.pages)).to.have.length.of.at.most(10);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "User-Agent",
+                "value": "RBA-QA-Automation/1.0 (Senior QA automation test)",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch=Raiffeisen&gsrlimit=10&prop=info&format=json",
+              "protocol": "https",
+              "host": ["en", "wikipedia", "org"],
+              "path": ["w", "api.php"],
+              "query": [
+                { "key": "action", "value": "query" },
+                { "key": "generator", "value": "search" },
+                { "key": "gsrsearch", "value": "Raiffeisen" },
+                { "key": "gsrlimit", "value": "10" },
+                { "key": "prop", "value": "info" },
+                { "key": "format", "value": "json" }
+              ]
+            },
+            "description": "Wikipedia basic search for 'Raiffeisen'. Uses generator=search so the response contains a 'pages' object whose titles can be validated, satisfying all task requirements."
+          }
+        }
+      ]
+    }
+  ]
+}

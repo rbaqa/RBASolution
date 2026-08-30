@@ -1,0 +1,56 @@
+# Requirements Traceability Matrix (RTM)
+
+Maps every requirement from the original task to its automated test case and
+current status, so a reviewer can verify full coverage at a glance.
+
+Legend: ✅ Implemented (passing) · 🟡 Implemented (needs environment/browser) · ⬜ Not in scope
+
+## A. Selenium (Java + TestNG)
+| ID | Requirement | Test | Status |
+|---|---|---|---|
+| S1 | New project created | Project scaffold (Maven) | ✅ |
+| S2 | Project placed on git | `git init` + commit | ✅ |
+| S3 | Use Selenium only (no JavaScript Executor) | All `selenium/` code uses WebDriver only | ✅ |
+| S4 | Use Java only | Java 8 bytecode | ✅ |
+| S5 | Run via TestNG | `suites/testng.xml`, TestNG annotations | ✅ |
+| S6 | Open `www.rba.hr` | `BaseTest.openApp()` | ✅ |
+| S7 | Select "Tecajni kalkulator" | `openHomePageAndSelectCalculator` | ✅ |
+| S8 | Buy GBP (kupnja funti) - read rate & final amount | `performTransaction(BUY GBP)` | ✅ |
+| S9 | Sell USD (prodaja dolara) - read rate & final amount | `performTransaction(SELL USD)` | ✅ |
+| S10 | e.g. "40 EUR -> 36.29 GBP" style consistency | consistency assert (rate × input ≈ amount) | ✅ |
+
+## B. Postman / REST
+| ID | Requirement | Test | Status |
+|---|---|---|---|
+| P1 | Basic REST - replicate Selenium example via REST | `ExchangeRateApiTest` (buy + sell) | ✅ |
+| P2 | Wikipedia search 'Raiffeisen' - first 10 results JSON | `wikipediaSearchReturnsExpectedStructureAndTitle` | ✅ |
+| P3 | response code = 200 | `statusCode(200)` | ✅ |
+| P4 | response time < 5 seconds | `response.timeIn(...) < 5000` | ✅ |
+| P5 | response contains 'pages' object | `body("query.pages", notNullValue())` | ✅ |
+| P6 | a page contains key 'title' = 'Raiffeisen Bank International' | `titles.contains(expected)` | ✅ |
+| Bonus | JSON Schema validation | `wikipediaResponseMatchesJsonSchema` | ✅ |
+| Bonus | Performance smoke | `wikipediaPerformanceSmoke` | ✅ |
+
+## C. Java program
+| ID | Requirement | Test | Status |
+|---|---|---|---|
+| J1 | JDK 1.8.261 (or similar) | `maven.compiler.release=8` | ✅ |
+| J2 | Convert Wikipedia JSON results to valid XML | `WikipediaJsonToXml.convert(...)` | ✅ |
+| J3 | Output is valid/well-formed XML | `WikipediaJsonToXmlTest` (numeric keys, arrays, escaping) | ✅ |
+| Bonus | CLI usage (`<in> <out>`) | `main(...)` | ✅ |
+
+## D. Senior-quality extras (proactive)
+| ID | Extras | Status |
+|---|---|---|
+| E1 | Reproducible environment (Maven wrapper, `setup-env.ps1`) | ✅ |
+| E2 | CI/CD pipeline (GitHub Actions, headless) | ✅ |
+| E3 | Allure + TestNG reporting, screenshot on failure | ✅ |
+| E4 | Logging framework (Log4j2) | ✅ |
+| E5 | Configuration management (12-factor) | ✅ |
+| E6 | Retry analyzer for flaky tests | ✅ |
+| E7 | Decimal-format / edge-case handling (BigDecimal, locale) | ✅ |
+| E8 | Environment validation (`@BeforeSuite`) | ✅ |
+| E9 | Schema validation | ✅ |
+| E10 | Documentation (this + strategy + architecture) | ✅ |
+| E11 | Parallel-capable tests (thread-local drivers) | ✅ |
+| E12 | Containerised run (Docker, optional) | ✅ |
