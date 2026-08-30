@@ -69,3 +69,6 @@ Legend: ✅ Implemented (passing) · 🟡 Implemented (needs environment/browser
 | E25 | Auto-install of missing prerequisites (`setup-env.ps1` winget/Chocolatey, `setup-env.sh` apt, sudo-elevated) | ✅ |
 | E26 | Clean-environment teardown (`setup-env.ps1 -Uninstall` / `setup-env.sh --uninstall`, marker-tracked, never touches pre-existing software) | ✅ |
 | E27 | Windows + Linux clean-env CI jobs - only reports remain after teardown | ✅ |
+| E28 | ChromeDriver pinned to the installed Chrome major at runtime (`ChromeVersion`), overridable via `browser.chromedriver.version` | ✅ |
+| E29 | Java-8-safe dependency pinning (TestNG 7.5.1 - last release with Java 8 bytecode) | ✅ |
+| E30 | Resilient teardown - Chromedriver shutdown timeout is logged, never fails the suite | ✅ |

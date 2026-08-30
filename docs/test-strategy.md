@@ -27,6 +27,8 @@ present, internet available for the API/UI systems under test.
 | Cookie consent banner overlays page | Conditional OneTrust dismissal (no-op when absent) |
 | Wikipedia blocks default user-agents (403) | Send descriptive `User-Agent` |
 | Transient browser flakiness | Explicit waits, retry-analyzer (max 2), screenshot on failure |
+| Fresh CI runner resolves a ChromeDriver newer than the installed Chrome | `ChromeVersion` detects the installed major and pins the driver to it; `browser.chromedriver.version` forces a specific version |
+| Chromedriver shutdown timeout on Windows CI (teardown) | Tolerant teardown: a slow driver-server shutdown is logged as a warning, never fails the suite |
 
 ## 5. Negative / edge-case handling
 - **Decimal formats**: `DecimalParser` normalises `36,29` / `1.234,56` / `36.29` / API decimals → `BigDecimal`.

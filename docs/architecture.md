@@ -33,16 +33,19 @@ rba-task/
         ├── java/techrba/
         │   ├── annotation/Requirement.java    # RTM traceability annotation
         │   ├── base/BaseTest.java            # thread-safe WebDriver lifecycle
+        │   ├── base/BaseCalculatorTest.java  # shared calculator test steps
         │   ├── base/DriverWait.java          # shared explicit-wait helpers
         │   ├── base/WaitStrategy.java        # AJAX stable-value waits (no JS)
         │   ├── driver/WebDriverFactory.java  # Strategy: local + grid browsers
         │   ├── driver/DriverType.java        # CHROME | FIREFOX | EDGE
+        │   ├── driver/ChromeVersion.java     # pin ChromeDriver to installed Chrome
         │   ├── driver/CapabilitiesBuilder.java
         │   ├── error/UnsupportedBrowserException.java
         │   ├── data/CsvDataProvider.java     # data-driven test data (CSV)
         │   ├── pages/HomePage.java           # Page Object: homepage + navigation
         │   ├── pages/ExchangeCalculatorPage.java  # Page Object: calculator form
-        │   ├── selenium/ExchangeCalculatorTest.java   # data-driven UI test
+        │   ├── selenium/*.java               # UI tests: calculator (data-driven),
+        │   │                                 #   currencies, rates, date, switch, invalid
         │   ├── api/BaseApiTest.java          # shared RestAssured spec + http logging
         │   ├── api/WikipediaApiTest.java
         │   ├── api/ExchangeRateApiTest.java
@@ -76,6 +79,13 @@ Grid / cloud via `remote.url`), and `CapabilitiesBuilder` centralises browser
 tuning (headless, CI flags). Tests never build drivers directly, so switching
 browser or targeting a grid is pure configuration.
 
+`DriverType.CHROME` pins WebDriverManager to the Chrome major that is actually
+installed: `ChromeVersion` detects it (PowerShell/registry on Windows, the
+`--version` flag on Linux) and forces `WebDriverManager.browserVersion(...)`.
+This prevents a fresh CI runner from resolving a driver for a newer Chrome than
+the one present (`SessionNotCreatedException`). Override any time with
+`browser.chromedriver.version` (system property / `ENV_BROWSER_CHROMEDRIVER_VERSION`).
+
 ### Utilities (`techrba.util`)
 `DecimalParser` normalises currency figures expressed with European comma
 (`36,29`), Croatian/European grouping (`1.234,56`) or US/API dot (`0.830960`) into
@@ -90,10 +100,14 @@ valid XML** document. It sanitises every JSON key into a legal XML element name
 ### UI test layer (`techrba.base` + `techrba.pages` + `techrba.selenium`)
 The Selenium tests follow the **Page Object Model (POM)**:
 
-- `BaseTest` supplies a **thread-local `WebDriver`** (parallel-safe), uses
-  `WebDriverManager` to resolve ChromeDriver, configures Chrome Options (headless
-  option for CI), and enforces implicit waits. `DriverWait` centralises explicit
-  waits (timeout from config).
+- `BaseTest` supplies a **thread-local `WebDriver`** (parallel-safe), resolves
+  ChromeDriver via WebDriverManager (pinned to the installed Chrome major by
+  `ChromeVersion`) and configures Chrome Options including headless for CI.
+  `DriverWait` centralises explicit waits (timeout from config). Teardown is
+  tolerant: Chromedriver shutdown timeouts (a known Windows-CI quirk) are logged
+  as warnings instead of failing the suite.
+- `BaseCalculatorTest` shares the steps common to all calculator tests
+  (open page, select currency pair, enter amount, read rate/amount).
 - `HomePage` (Page Object) encapsulates the homepage: `open()`,
   `dismissCookieBannerIfPresent()` (OneTrust consent overlay) and
   `openExchangeCalculator()` (clicks the button, switches to the new tab).

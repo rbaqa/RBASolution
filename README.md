@@ -56,9 +56,13 @@ Key technical decisions:
 - **TestNG pinned to 7.5.1** — the last release with Java 8 bytecode (7.6+ is
   compiled for Java 11 and would fail JDK 8 (`cannot access org.testng.annotations.*`)).
 - **Maven Wrapper** (`./mvnw`) for reproducible builds with **no global Maven**.
-- **WebDriverManager** resolves the exact ChromeDriver matching the installed
-  Chrome – no hard-coded driver versions.
+- **ChromeDriver matched to the installed Chrome** at runtime (`ChromeVersion`):
+  WebDriverManager is pinned to the detected Chrome major version, so a fresh CI
+  runner never resolves a driver for a newer Chrome than the one that is
+  installed. Override any time via `browser.chromedriver.version` (env/system prop).
 - **Thread-local `WebDriver`** so tests can run in parallel.
+- **Resilient browser teardown**: a slow/stuck Chromedriver shutdown on the
+  Windows runner is logged as a warning instead of failing the suite.
 - **Log4j2** structured logging to console + rolling file.
 - **Allure + TestNG** reporting with screenshot-on-failure.
 
@@ -140,6 +144,9 @@ Browser and grid are fully configurable (see `WebDriverFactory`):
 
 # run on a Selenium Grid / cloud instead of a local browser
 .\mvnw.cmd -Dremote.url=http://localhost:4444/wd/hub test
+
+# force a specific ChromeDriver major (when the detected one is unsuitable)
+.\mvnw.cmd -Dbrowser.chromedriver.version=151 test
 ```
 
 Environment profiles (12-factor): load `config/test-config-<env>.properties` on top of the base config:
