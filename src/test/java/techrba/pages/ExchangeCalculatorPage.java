@@ -37,6 +37,10 @@ public class ExchangeCalculatorPage {
     private static final By AMOUNT_INPUT = By.id("suma1");
     private static final By RESULT_AMOUNT = By.id("suma2");         // hidden, AJAX-populated
     private static final By EXCHANGE_RATE = By.id("exchangeRate"); // hidden, AJAX-populated
+    private static final By DATE_INPUT = By.id("d");                // exchange date (dd.MM.yyyy)
+    private static final By DATE_LABEL = By.id("dateVal");         // UI label mirroring the chosen date
+    private static final By SWITCH_CURRENCY_LINK = By.id("switchCurrency");
+    private static final By EFFECTIVE_SECTION = By.id("acctContainer"); // shown for Kupovni/Prodajni only
 
     private final WebDriver driver;
     private final DriverWait wait;
@@ -96,6 +100,102 @@ public class ExchangeCalculatorPage {
         String txt = driver.findElement(RESULT_AMOUNT).getAttribute("value");
         LOG.debug("Raw converted amount field value = '{}'", txt);
         return DecimalParser.parse(txt);
+    }
+
+    /**
+     * Swaps the exchange-from and exchange-to currencies by clicking the
+     * {@code #switchCurrency} element. The page then triggers a change on all
+     * inputs, recalculating for the swapped pair.
+     */
+    @Step("Switch currencies (swap from/to)")
+    public ExchangeCalculatorPage switchCurrencies() {
+        WebElement link = wait.get().until(ExpectedConditions.elementToBeClickable(SWITCH_CURRENCY_LINK));
+        link.click();
+        waitForExchangeResult();
+        return this;
+    }
+
+    /**
+     * Sets the exchange date ({@code #d}, format {@code dd.MM.yyyy}). A TAB
+     * (blur) triggers the recalculation instead of Enter, matching the amount
+     * field behaviour. The backend may rewrite the date to the latest value it
+     * has rates for.
+     *
+     * @param date dotted date string, e.g. {@code 15.03.2026}
+     */
+    @Step("Set exchange date {date}")
+    public ExchangeCalculatorPage setDate(String date) {
+        WebElement field = wait.get().until(ExpectedConditions.visibilityOfElementLocated(DATE_INPUT));
+        field.sendKeys(Keys.chord(Keys.CONTROL, "a"));
+        field.sendKeys(date);
+        new Actions(driver).sendKeys(Keys.TAB).perform();
+        waitForExchangeResult();
+        LOG.debug("Date field '#d' value after setting {} = '{}'", date, field.getAttribute("value"));
+        return this;
+    }
+
+    /** Returns the date the backend accepted ({@code #d} after the last calculation). */
+    @Step("Read the applied exchange date")
+    public String readAppliedDate() {
+        wait.get().until(d -> {
+            String v = d.findElement(DATE_INPUT).getAttribute("value");
+            return v != null && !v.trim().isEmpty();
+        });
+        return driver.findElement(DATE_INPUT).getAttribute("value");
+    }
+
+    /**
+     * Text of the {@code #dateVal} label ("Tecaj na dan:" ... ). The page JS sets
+     * it to {@code &nbsp; + $('#d').val()}, so it mirrors the date selected in the
+     * picker. The leading non-breaking space is trimmed before returning.
+     */
+    @Step("Read the displayed date label (#dateVal)")
+    public String readSelectedDateLabel() {
+        wait.get().until(ExpectedConditions.visibilityOfElementLocated(DATE_LABEL));
+        String text = driver.findElement(DATE_LABEL).getText().replace("\u00A0", " ").trim();
+        LOG.debug("Date label #dateVal = '{}'", text);
+        return text;
+    }
+
+    /** Raw (unparsed) text of the amount input -- used to assert NaN handling. */
+    @Step("Read the amount input value")
+    public String readAmountInputValue() {
+        WebElement input = driver.findElement(AMOUNT_INPUT);
+        String v = input.getAttribute("value");
+        LOG.debug("Amount field '#suma1' raw value = '{}'", v);
+        return v;
+    }
+
+    /** True when the "Za efektivu" section is visible (Kupovni/Prodajni modes). */
+    public boolean isEffectiveSectionVisible() {
+        WebElement section = driver.findElement(EFFECTIVE_SECTION);
+        return section.isDisplayed();
+    }
+
+    /** Current value (currency id) of the from-currency select ({@code #val1}). */
+    @Step("Read selected from-currency")
+    public String readSelectedFromCurrency() {
+        WebElement element = wait.get().until(ExpectedConditions.presenceOfElementLocated(FROM_CURRENCY));
+        return new Select(element).getFirstSelectedOption().getAttribute("value");
+    }
+
+    /** Current value (currency id) of the to-currency select ({@code #val2}). */
+    @Step("Read selected to-currency")
+    public String readSelectedToCurrency() {
+        WebElement element = wait.get().until(ExpectedConditions.presenceOfElementLocated(TO_CURRENCY));
+        return new Select(element).getFirstSelectedOption().getAttribute("value");
+    }
+
+    /**
+     * Types arbitrary text into the amount field (no blur) so the page's own
+     * keyup formatting kicks in. Used to verify the NaN display behaviour.
+     */
+    @Step("Type text {text} into the amount field")
+    public ExchangeCalculatorPage typeAmountText(String text) {
+        WebElement input = wait.get().until(ExpectedConditions.visibilityOfElementLocated(AMOUNT_INPUT));
+        input.sendKeys(Keys.chord(Keys.CONTROL, "a"));
+        input.sendKeys(text);
+        return this;
     }
 
     private void waitForExchangeResult() {
