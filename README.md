@@ -135,7 +135,7 @@ docker compose -f docker/docker-compose.yml up --build
 
 | CI | Status |
 |---|---|
-| GitHub Actions | [![RBA QA CI](https://github.com/<owner>/<repo>/actions/workflows/ci.yml/badge.svg)](https://github.com/<owner>/<repo>/actions/workflows/ci.yml) |
+| GitHub Actions | [![RBA QA CI](https://github.com/rbaqa/RBASolution/actions/workflows/ci.yml/badge.svg)](https://github.com/rbaqa/RBASolution/actions/workflows/ci.yml) |
 
 The [`ci.yml`](.github/workflows/ci.yml) workflow:
 - Runs on push/PR to `main`/`master`.
