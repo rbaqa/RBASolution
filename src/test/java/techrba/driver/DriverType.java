@@ -23,7 +23,12 @@ public enum DriverType {
     CHROME {
         @Override
         public WebDriver createLocal(WebDriverFactory.Options options) {
-            WebDriverManager.chromedriver().setup();
+            WebDriverManager manager = WebDriverManager.chromedriver();
+            String chromeMajor = ChromeVersion.matchingMajor();
+            if (chromeMajor != null) {
+                manager.browserVersion(chromeMajor);
+            }
+            manager.setup();
             return new ChromeDriver(options.chrome());
         }
 
