@@ -1,0 +1,3 @@
+transaction,description,mode,currency1Id,currency1Code,amount,currency2Id,currency2Code
+BUY_GBP,Buy GBP (kupnja funti): bank sells GBP -> Prodajni,2,978,EUR,40,826,GBP
+SELL_USD,Sell USD (prodaja dolara): bank buys USD -> Kupovni,0,840,USD,100,978,EUR

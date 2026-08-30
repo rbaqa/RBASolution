@@ -108,6 +108,20 @@ $env:ENV_BROWSER_HEADLESS = "true"
 .\mvnw.cmd test
 ```
 
+Browser and grid are fully configurable (see `WebDriverFactory`):
+```powershell
+# change browser (chrome | firefox | edge)
+.\mvnw.cmd -Dbrowser=firefox test
+
+# run on a Selenium Grid / cloud instead of a local browser
+.\mvnw.cmd -Dremote.url=http://localhost:4444/wd/hub test
+```
+
+Environment profiles (12-factor): load `config/test-config-<env>.properties` on top of the base config:
+```powershell
+.\mvnw.cmd -Denv=qa test      # or $env:TEST_ENV = "qa"
+```
+
 ### 3.5 Run the Java JSON → XML converter
 ```powershell
 # args: <input.json> <output.xml>   (defaults to reports/wikipedia-response.*)

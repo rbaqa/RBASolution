@@ -28,31 +28,50 @@ rba-task/
     │   └── config/test-config.properties   # classpath fallback of config
     └── test/
         ├── java/techrba/
+        │   ├── annotation/Requirement.java    # RTM traceability annotation
         │   ├── base/BaseTest.java            # thread-safe WebDriver lifecycle
         │   ├── base/DriverWait.java          # shared explicit-wait helpers
+        │   ├── base/WaitStrategy.java        # AJAX stable-value waits (no JS)
+        │   ├── driver/WebDriverFactory.java  # Strategy: local + grid browsers
+        │   ├── driver/DriverType.java        # CHROME | FIREFOX | EDGE
+        │   ├── driver/CapabilitiesBuilder.java
+        │   ├── error/UnsupportedBrowserException.java
+        │   ├── data/CsvDataProvider.java     # data-driven test data (CSV)
         │   ├── pages/HomePage.java           # Page Object: homepage + navigation
         │   ├── pages/ExchangeCalculatorPage.java  # Page Object: calculator form
-        │   ├── selenium/ExchangeCalculatorTest.java
+        │   ├── selenium/ExchangeCalculatorTest.java   # data-driven UI test
+        │   ├── api/BaseApiTest.java          # shared RestAssured spec + http logging
         │   ├── api/WikipediaApiTest.java
         │   ├── api/ExchangeRateApiTest.java
         │   ├── retry/RetryAnalyzer.java, AnnotationTransformer.java
-        │   ├── listener/TestListener.java
+        │   ├── listener/TestListener.java, TestSummaryListener.java
         │   └── unit/DecimalParserTest.java, WikipediaJsonToXmlTest.java
         └── resources/
             ├── suites/*.xml
-            └── schemas/wikipedia-response-schema.json
+            ├── schemas/wikipedia-response-schema.json
+            └── testdata/exchange-transactions.csv
 ```
 
 ## Layers & responsibilities
 
 ### Configuration layer (`techrba.config`)
 `ConfigManager` loads `config/test-config.properties` (editable, external file)
-and falls back to a classpath copy. Precedence (low → high):
-1. properties file
-2. environment variable (`ENV_KEY_MADE_UPPER`)
-3. system property (`-Dkey=value`)
+and falls back to a classpath copy, then applies an optional environment
+profile overlay (`config/test-config-<env>.properties`) selected by `-Denv=...`
+or the `TEST_ENV` env var. Precedence (low → high):
+1. profile overlay
+2. base properties file
+3. environment variable (`ENV_KEY_MADE_UPPER`)
+4. system property (`-Dkey=value`)
 
 This is the 12-factor externalisation pattern: no secrets/values hard-coded in tests.
+
+### Driver layer (`techrba.driver`)
+`WebDriverFactory` is the only place that constructs a `WebDriver` (Strategy
+pattern). `DriverType` (CHROME/FIREFOX/EDGE) decides local vs remote (Selenium
+Grid / cloud via `remote.url`), and `CapabilitiesBuilder` centralises browser
+tuning (headless, CI flags). Tests never build drivers directly, so switching
+browser or targeting a grid is pure configuration.
 
 ### Utilities (`techrba.util`)
 `DecimalParser` normalises currency figures expressed with European comma

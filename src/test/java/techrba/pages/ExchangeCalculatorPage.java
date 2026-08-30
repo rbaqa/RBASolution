@@ -1,5 +1,6 @@
 package techrba.pages;
 
+import io.qameta.allure.Step;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.By;
@@ -9,6 +10,7 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
 
 import techrba.base.DriverWait;
+import techrba.base.WaitStrategy;
 import techrba.util.DecimalParser;
 
 import java.math.BigDecimal;
@@ -43,22 +45,26 @@ public class ExchangeCalculatorPage {
     }
 
     /** Sets the rate mode: 0=Kupovni, 1=Srednji, 2=Prodajni. */
+    @Step("Select rate type (kurs) mode {mode}")
     public ExchangeCalculatorPage selectRateType(int mode) {
         selectByValue(RATE_TYPE_DROPDOWN, String.valueOf(mode));
         return this;
     }
 
+    @Step("Select exchange-from currency {currencyId}")
     public ExchangeCalculatorPage selectFromCurrency(String currencyId) {
         selectByValue(FROM_CURRENCY, currencyId);
         return this;
     }
 
+    @Step("Select exchange-to currency {currencyId}")
     public ExchangeCalculatorPage selectToCurrency(String currencyId) {
         selectByValue(TO_CURRENCY, currencyId);
         return this;
     }
 
     /** Sets the amount to convert. Changing it triggers the backend AJAX call. */
+    @Step("Enter amount {amount}")
     public ExchangeCalculatorPage enterAmount(int amount) {
         WebElement input = wait.get().until(ExpectedConditions.visibilityOfElementLocated(AMOUNT_INPUT));
         input.clear();
@@ -68,6 +74,7 @@ public class ExchangeCalculatorPage {
     }
 
     /** Reads the normalised exchange rate (e.g. 0.830960) after the AJAX reply. */
+    @Step("Read the exchange rate")
     public BigDecimal readExchangeRate() {
         waitForNonNullValue(EXCHANGE_RATE);
         String txt = driver.findElement(EXCHANGE_RATE).getAttribute("value");
@@ -75,6 +82,7 @@ public class ExchangeCalculatorPage {
     }
 
     /** Reads the converted amount (e.g. 33.2384) after the AJAX reply. */
+    @Step("Read the converted amount")
     public BigDecimal readConvertedAmount() {
         waitForNonNullValue(RESULT_AMOUNT);
         String txt = driver.findElement(RESULT_AMOUNT).getAttribute("value");
@@ -82,9 +90,11 @@ public class ExchangeCalculatorPage {
     }
 
     private void waitForExchangeResult() {
-        // The converted field is populated by a debounced (300 ms) AJAX call
-        waitForNonNullValue(RESULT_AMOUNT);
-        DriverWait.sleepQuietly(1200);
+        // The converted field is populated by a debounced (~300 ms) AJAX call;
+        // wait until its value stabilises instead of using a fixed sleep.
+        WaitStrategy.waitForValueStable(driver, RESULT_AMOUNT, 400L);
+        // Harden against the very last millisecond of a concurrent AJAX update.
+        WaitStrategy.waitForValueStable(driver, EXCHANGE_RATE, 200L);
     }
 
     private void waitForNonNullValue(By locator) {

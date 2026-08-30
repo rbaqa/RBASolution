@@ -5,6 +5,7 @@
     <!-- Global listener + retry transformer -->
     <listeners>
         <listener class-name="techrba.listener.TestListener"/>
+        <listener class-name="techrba.listener.TestSummaryListener"/>
         <listener class-name="techrba.retry.AnnotationTransformer"/>
     </listeners>
 

@@ -26,6 +26,8 @@ public final class ConfigManager {
     private static final Logger LOG = LogManager.getLogger(ConfigManager.class);
     private static final String CONFIG_FILE = "config/test-config.properties";
     private static final String ENV_PREFIX = "ENV_";
+    private static final String PROFILE_SYSTEM_PROP = "env";
+    private static final String PROFILE_ENV_VAR = "TEST_ENV";
 
     private static final Properties PROPS = new Properties();
     private static volatile boolean loaded;
@@ -63,7 +65,59 @@ public final class ConfigManager {
                 throw new IllegalStateException("Failed to load configuration file " + CONFIG_FILE, e);
             }
         }
+        // 3) Environment profile overlay (12-factor): -Denv=qa (or TEST_ENV=qa)
+        //    loads config/test-config-<profile>.properties on top of the base file.
+        String profile = profileName();
+        if (profile != null && !profile.isEmpty()) {
+            loadProfile(profile);
+        }
         loaded = true;
+    }
+
+    /** Active environment profile from -Denv=... or the TEST_ENV env var (may be empty). */
+    private static String profileName() {
+        String fromProp = System.getProperty(PROFILE_SYSTEM_PROP);
+        if (fromProp != null && !fromProp.trim().isEmpty()) {
+            return fromProp.trim();
+        }
+        String fromEnv = System.getenv(PROFILE_ENV_VAR);
+        return fromEnv == null ? "" : fromEnv.trim();
+    }
+
+    private static void loadProfile(String profile) {
+        String fileName = "config/test-config-" + profile + ".properties";
+        // external first, then classpath
+        Path external = Paths.get(fileName);
+        if (Files.exists(external)) {
+            loadInto(external.toAbsolutePath().toString(), () -> Files.newInputStream(external),
+                    "environment profile (external)");
+            return;
+        }
+        try (InputStream in = ConfigManager.class.getClassLoader().getResourceAsStream(fileName)) {
+            if (in != null) {
+                loadInto(fileName, () -> in, "environment profile (classpath)");
+            } else {
+                LOG.warn("Environment profile file '{}' not found - continuing with base config only", fileName);
+            }
+        } catch (IOException e) {
+            LOG.warn("Failed to load profile '{}': {}", fileName, e.getMessage());
+        }
+    }
+
+    private static void loadInto(String sourceName, InputStreamSupplier supplier, String kind) {
+        try (InputStream in = supplier.get()) {
+            Properties overlay = new Properties();
+            overlay.load(in);
+            PROPS.putAll(overlay);
+            LOG.info("Loaded {}: {}", kind, sourceName);
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to load " + kind + " " + sourceName, e);
+        }
+    }
+
+    /** Small functional interface to defer opening the stream (avoid double-open issues). */
+    private interface InputStreamSupplier {
+        InputStream get() throws IOException;
     }
 
     public static String get(String key) {
