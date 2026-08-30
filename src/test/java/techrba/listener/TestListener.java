@@ -13,9 +13,12 @@ import org.testng.ITestResult;
 import techrba.base.BaseTest;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Comparator;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Central TestNG listener capturing rich reporting on test lifecycle:
@@ -29,6 +32,7 @@ public class TestListener implements ITestListener {
 
     private static final Logger LOG = LogManager.getLogger(TestListener.class);
     private static final String SCREENSHOT_DIR = "reports/screenshots";
+    private static final AtomicBoolean CLEANED = new AtomicBoolean(false);
 
     @Override
     public void onTestStart(ITestResult result) {
@@ -55,6 +59,9 @@ public class TestListener implements ITestListener {
 
     @Override
     public void onStart(ITestContext context) {
+        if (CLEANED.compareAndSet(false, true)) {
+            cleanReportDirs();
+        }
         LOG.info("SUITE START: {}", context.getName());
     }
 
@@ -62,10 +69,40 @@ public class TestListener implements ITestListener {
     public void onFinish(ITestContext context) {
         LOG.info("SUITE FINISH: {} (total={}, passed={}, failed={}, skipped={})",
                 context.getName(),
-                context.getAllTestMethods().length,
+                context.getPassedTests().size() + context.getFailedTests().size()
+                        + (long) context.getSkippedTests().size(),
                 context.getPassedTests().size(),
                 context.getFailedTests().size(),
                 context.getSkippedTests().size());
+    }
+
+    /**
+     * Wipes the previous run's report artefacts so Allure and the screenshots
+     * folder always reflect only the current execution.
+     */
+    private static void cleanReportDirs() {
+        for (String dir : new String[]{"reports/allure-results", "reports/allure-report", SCREENSHOT_DIR}) {
+            Path root = Paths.get(dir);
+            if (!Files.exists(root)) {
+                continue;
+            }
+            try {
+                Files.walk(root)
+                        .sorted(Comparator.reverseOrder())
+                        .forEach(TestListener::deleteQuietly);
+                LOG.info("Cleaned previous report artefacts in {}", root.toAbsolutePath());
+            } catch (IOException e) {
+                LOG.warn("Could not clean {}: {}", dir, e.getMessage());
+            }
+        }
+    }
+
+    private static void deleteQuietly(Path p) {
+        try {
+            Files.deleteIfExists(p);
+        } catch (IOException e) {
+            LOG.warn("Could not delete {}: {}", p, e.getMessage());
+        }
     }
 
     /**

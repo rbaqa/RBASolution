@@ -58,3 +58,89 @@ jobs:
         with:
           name: screenshots
           path: reports/screenshots
+
+  # ---------------------------------------------------------------------------
+  # Full clean-environment lifecycle on Windows:
+  #   setup (installs JDK 8 + Chrome if missing) -> run all tests -> generate
+  #   reports -> teardown (uninstalls everything setup-env.ps1 installed, so a
+  #   server returns to its clean state with ONLY reports remaining).
+  # ---------------------------------------------------------------------------
+  windows-clean-env-run:
+    name: Windows lifecycle (setup > test > report > teardown)
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Provision clean environment (installs JDK 8 + Chrome if missing)
+        shell: powershell
+        run: .\setup-env.ps1
+
+      - name: Run full test suite (unit + API + Selenium headless)
+        shell: powershell
+        run: .\mvnw.cmd -B -Dsuite.file=testng.xml test
+        env:
+          ENV_BROWSER_HEADLESS: "true"
+
+      - name: Generate Allure report
+        if: always()
+        shell: powershell
+        run: .\mvnw.cmd -B allure:report
+
+      # Reports are uploaded BEFORE teardown so they are preserved as artifacts
+      # even though the environment itself is wiped afterwards.
+
+      - name: Upload Install/Teardown marker (debug)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: setup-marker
+          path: reports/.setup-installed.json
+          if-no-files-found: ignore
+
+      - name: Upload Surefire/TestNG reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports-win
+          path: target/surefire-reports
+          if-no-files-found: warn
+
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-win
+          path: reports/allure-results
+          if-no-files-found: warn
+
+      - name: Upload Allure HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-report-win
+          path: reports/allure-report
+          if-no-files-found: warn
+
+      - name: Upload screenshots (UI failures)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-win
+          path: reports/screenshots
+          if-no-files-found: ignore
+
+      - name: Upload test summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-summary-win
+          path: reports/test-summary.txt
+          if-no-files-found: ignore
+
+      - name: Teardown - uninstall environment, keep only reports
+        if: always()
+        shell: powershell
+        run: .\setup-env.ps1 -Uninstall

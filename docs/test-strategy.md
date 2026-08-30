@@ -14,8 +14,9 @@ test infrastructure (reporting, CI/CD, configuration, logging).
 | **Schema validation** | Wikipedia JSON against a formal JSON Schema | `WikipediaApiTest.wikipediaResponseMatchesJsonSchema` |
 
 ## 3. Entry / exit criteria
-**Entry:** environment validated (`setup-env.ps1`), config present, internet
-available for the API/UI systems under test.
+**Entry:** environment validated and provisioned (`setup-env.ps1` checks and
+auto-installs missing JDK 8 / Chrome), config present, internet available for
+the API/UI systems under test.
 **Exit:** all targeted tests pass; reports generated; no tests disabled.
 
 ## 4. Risks & mitigations
@@ -54,5 +55,5 @@ available for the API/UI systems under test.
 | Test orchestration | TestNG (parallel-safe, listeners, retry) |
 | Logging | Log4j2 (slf4j façade) |
 | Reporting | Allure + Surefire |
-| CI/CD | GitHub Actions + optional Docker |
+| CI/CD | GitHub Actions (Linux gate + Windows clean-env lifecycle) + optional Docker |
 | Config | 12-factor properties + env/system overrides |

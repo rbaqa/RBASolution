@@ -9,7 +9,8 @@ reviewer (and future maintainer) can quickly understand what is where and why.
 ```
 rba-task/
 ├── .github/workflows/ci.yml        # CI/CD pipeline
-├── setup-env.ps1                  # environment pre-requisite checker (Windows)
+├── setup-env.ps1                  # environment provisioning (Windows): validate,
+│                                  #   auto-install missing JDK/Chrome, teardown
 ├── pom.xml                        # Maven build (Java 8 bytecode)
 ├── mvnw / mvnw.cmd / .mvn/        # Maven wrapper (reproducible build)
 ├── README.md                      # entry point

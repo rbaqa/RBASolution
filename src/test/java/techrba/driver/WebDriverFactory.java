@@ -2,6 +2,7 @@ package techrba.driver;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.openqa.selenium.Dimension;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.edge.EdgeOptions;
@@ -53,7 +54,18 @@ public final class WebDriverFactory {
     }
 
     private static void applyTimeouts(WebDriver driver) {
-        driver.manage().window().maximize();
+        // Headless "maximize()" yields a small 800x600 viewport, which makes the
+        // RBA site render its narrow layout where the sticky nav overlays the
+        // calculator fields. Use a desktop-sized viewport in headless instead
+        // (configurable via browser.window.width/height); a real (headed) run
+        // still maximises to the physical screen.
+        if (ConfigManager.getBoolean("browser.headless")) {
+            int width = ConfigManager.getInt("browser.window.width");
+            int height = ConfigManager.getInt("browser.window.height");
+            driver.manage().window().setSize(new Dimension(width, height));
+        } else {
+            driver.manage().window().maximize();
+        }
         driver.manage().timeouts().implicitlyWait(
                 Duration.ofSeconds(ConfigManager.getInt("selenium.implicit.timeout.seconds")));
         driver.manage().timeouts().pageLoadTimeout(

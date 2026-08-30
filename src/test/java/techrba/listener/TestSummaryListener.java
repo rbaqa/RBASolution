@@ -1,6 +1,5 @@
 package techrba.listener;
 
-import io.qameta.allure.Allure;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.testng.ITestContext;
@@ -71,10 +70,23 @@ public class TestSummaryListener implements ITestListener {
 
     @Override
     public void onFinish(ITestContext context) {
-        long total = context.getAllTestMethods().length;
-        long passed = context.getPassedTests().size();
-        long failed = context.getFailedTests().size();
-        long skipped = context.getSkippedTests().size();
+        long passed = 0L;
+        long failed = 0L;
+        long skipped = 0L;
+        for (Row r : rows) {
+            switch (r.status) {
+                case "PASS":
+                    passed++;
+                    break;
+                case "FAIL":
+                    failed++;
+                    break;
+                default:
+                    skipped++;
+                    break;
+            }
+        }
+        long total = rows.size();
 
         StringBuilder sb = new StringBuilder();
         sb.append("\n============== TEST SUMMARY (QA DASHBOARD) ===============\n");
@@ -94,9 +106,6 @@ public class TestSummaryListener implements ITestListener {
 
         System.out.println(sb);
         writeToFile(sb.toString());
-
-        // Attach to Allure report as a plain text attachment for traceability
-        Allure.addAttachment("Test Summary (QA Dashboard)", sb.toString());
     }
 
     private void writeToFile(String content) {

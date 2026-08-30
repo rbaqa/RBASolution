@@ -81,7 +81,19 @@ Optionally Docker if using the containerised run.
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\setup-env.ps1
 ```
-Validates Java, Chrome, configuration and connectivity.
+Validates Java, Chrome, configuration and connectivity, and **automatically
+installs** any missing prerequisite (JDK 8 / Google Chrome) via winget or
+Chocolatey, elevating to Administrator only when an install is needed. Maven
+itself is self-provisioned by the committed wrapper (`mvnw`). Pass `-SkipInstall`
+to validate only.
+
+Teardown (restores a machine to its clean pre-setup state, keeping `reports/`):
+```powershell
+powershell -ExecutionPolicy Bypass -File .\setup-env.ps1 -Uninstall
+```
+`-Uninstall` removes **only** what `setup-env.ps1` installed (tracked in
+`reports/.setup-installed.json`) plus the downloaded Maven caches; pre-existing
+software is never touched.
 
 ### 3.2 Run everything (unit + API + Selenium)
 ```powershell
@@ -152,9 +164,14 @@ docker compose -f docker/docker-compose.yml up --build
 | GitHub Actions | [![RBA QA CI](https://github.com/rbaqa/RBASolution/actions/workflows/ci.yml/badge.svg)](https://github.com/rbaqa/RBASolution/actions/workflows/ci.yml) |
 
 The [`ci.yml`](.github/workflows/ci.yml) workflow:
-- Runs on push/PR to `main`/`master`.
-- Sets up JDK 8 + cached Maven, runs the full suite **headless**.
-- Uploads Surefire + Allure results and failure screenshots as artifacts.
+- Runs on push/PR to `main`/`master` (and via `workflow_dispatch`).
+- `test` (Linux): sets up JDK 8 + cached Maven, runs the full suite **headless**,
+  uploads Surefire + Allure results and failure screenshots as artifacts.
+- `windows-clean-env-run` (Windows): full clean-environment lifecycle for
+  servers with no pre-installed dependencies - `setup-env.ps1` provisions
+  (JDK 8 + Chrome), all tests run headless, reports are generated and uploaded,
+  then `setup-env.ps1 -Uninstall` tears the environment back down so **only
+  reports remain**.
 
 ---
 

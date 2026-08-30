@@ -31,3 +31,6 @@ credentials.properties
 
 # Maven wrapper jar is committed; keep everything else
 # (wrapper jar checked in deliberately for reproducibility)
+
+# Allure CLI downloaded by allure-maven plugin
+.allure/
