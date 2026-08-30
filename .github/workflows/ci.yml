@@ -81,7 +81,9 @@ jobs:
 
       - name: Run full test suite (unit + API + Selenium headless)
         shell: powershell
-        run: .\mvnw.cmd -B -Dsuite.file=testng.xml test
+        # --% (stop-parsing) is required: PS 5.1 splits "-Dsuite.file=...".
+        # into "-Dsuite" + ".file=testng.xml" when invoking a .cmd batch.
+        run: .\mvnw.cmd --% -B -Dsuite.file=testng.xml test
         env:
           ENV_BROWSER_HEADLESS: "true"
 
