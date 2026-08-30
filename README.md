@@ -98,6 +98,16 @@ powershell -ExecutionPolicy Bypass -File .\setup-env.ps1 -Uninstall
 `reports/.setup-installed.json`) plus the downloaded Maven caches; pre-existing
 software is never touched.
 
+The same contract exists for Linux (bash), using `apt`/`sudo`:
+```bash
+./setup-env.sh              # one-time setup (installs JDK 8 + Chrome if missing)
+./setup-env.sh --skip-install   # validate only
+./setup-env.sh --uninstall      # teardown, keeps reports/
+```
+Inside GitHub Actions the script also exports `JAVA_HOME`/`PATH` via
+`$GITHUB_ENV`/`$GITHUB_PATH`; on a local machine it persists them in a removable
+`~/.bashrc` marker block.
+
 ### 3.2 Run everything (unit + API + Selenium)
 ```powershell
 .\mvnw.cmd test
@@ -175,6 +185,10 @@ The [`ci.yml`](.github/workflows/ci.yml) workflow:
   (JDK 8 + Chrome), all tests run headless, reports are generated and uploaded,
   then `setup-env.ps1 -Uninstall` tears the environment back down so **only
   reports remain**.
+- `linux-clean-env-run` (Linux): same lifecycle contract on Ubuntu via
+  `setup-env.sh` (installs JDK 8 + Chrome with `apt` if missing) ->
+  run all tests -> `allure:report` -> upload artifacts ->
+  `setup-env.sh --uninstall` (keeps only reports).
 
 ---
 

@@ -11,6 +11,8 @@ rba-task/
 ├── .github/workflows/ci.yml        # CI/CD pipeline
 ├── setup-env.ps1                  # environment provisioning (Windows): validate,
 │                                  #   auto-install missing JDK/Chrome, teardown
+├── setup-env.sh                   # environment provisioning (Linux, bash twin):
+│                                  #   auto-install missing JDK/Chrome, teardown
 ├── pom.xml                        # Maven build (Java 8 bytecode)
 ├── mvnw / mvnw.cmd / .mvn/        # Maven wrapper (reproducible build)
 ├── README.md                      # entry point

@@ -42,8 +42,8 @@ Legend: ✅ Implemented (passing) · 🟡 Implemented (needs environment/browser
 ## D. Senior-quality extras (proactive)
 | ID | Extras | Status |
 |---|---|---|
-| E1 | Reproducible environment (Maven wrapper; `setup-env.ps1` auto-installs missing JDK 8/Chrome) | ✅ |
-| E2 | CI/CD pipeline (GitHub Actions) - Linux headless gate + Windows clean-env lifecycle (provision → test → report → teardown) | ✅ |
+| E1 | Reproducible environment (Maven wrapper; `setup-env.ps1` / `setup-env.sh` auto-install missing JDK 8/Chrome) | ✅ |
+| E2 | CI/CD pipeline (GitHub Actions) - Linux headless gate + Linux & Windows clean-env lifecycles (provision → test → report → teardown) | ✅ |
 | E3 | Allure + TestNG reporting, screenshot on failure | ✅ |
 | E4 | Logging framework (Log4j2) | ✅ |
 | E5 | Configuration management (12-factor) | ✅ |
@@ -66,6 +66,6 @@ Legend: ✅ Implemented (passing) · 🟡 Implemented (needs environment/browser
 | E22 | `@Requirement` RTM traceability annotation + binding | ✅ |
 | E23 | `WaitStrategy` AJAX stable-value wait (no JS executor) | ✅ |
 | E24 | Exchange-date freshness check (`DateSanity`) | ✅ |
-| E25 | Auto-install of missing prerequisites (`setup-env.ps1`, winget/Chocolatey, UAC-elevated) | ✅ |
-| E26 | Clean-environment teardown (`setup-env.ps1 -Uninstall`, marker-tracked, never touches pre-existing software) | ✅ |
-| E27 | Windows clean-env CI job - only reports remain after teardown | ✅ |
+| E25 | Auto-install of missing prerequisites (`setup-env.ps1` winget/Chocolatey, `setup-env.sh` apt, sudo-elevated) | ✅ |
+| E26 | Clean-environment teardown (`setup-env.ps1 -Uninstall` / `setup-env.sh --uninstall`, marker-tracked, never touches pre-existing software) | ✅ |
+| E27 | Windows + Linux clean-env CI jobs - only reports remain after teardown | ✅ |
