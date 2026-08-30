@@ -167,4 +167,9 @@ Tests are tagged with TestNG groups (`smoke` / `regression` + functional tags)
 and executed in tiers - see [`test-strategy.md`](test-strategy.md) §5 and
 [`../.github/workflows/ci.yml`](../.github/workflows/ci.yml) for the full matrix.
 The `-Pquality` Maven profile binds a lenient Checkstyle + SpotBugs gate to
-`verify`; CI runs it on every trigger.
+`verify`; CI runs it on every trigger. The pinned SpotBugs 4.7.3.2 cannot parse
+JDK 17+ standard-library class files, so the gate must run on the **JDK 8**
+runtime the project targets (as the CI `quality` job does) - checkstyle is JDK
+agnostic. `setup-env` installs JDK 8 only when no JDK is present; it will not
+replace an existing JDK 17+, so a local run on a modern JDK needs a dedicated
+JDK 8.

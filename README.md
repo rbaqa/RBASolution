@@ -72,7 +72,7 @@ Key technical decisions:
 
 | Tool | Version | Notes |
 |---|---|---|
-| Java (JDK) | 8+ (bytecode targets 8) | `JAVA_HOME` set |
+| Java (JDK) | 8 recommended (bytecode targets 8; `-Pquality` SpotBugs gate requires a JDK 8 runtime) | `JAVA_HOME` set |
 | Maven | none required | provided by wrapper |
 | Google Chrome | latest | Chromedriver auto-resolved via WebDriverManager |
 | Git | any | for version control |
@@ -205,6 +205,15 @@ Each run also writes Allure **companion files** into `reports/allure-results`:
 `-Pquality` binds `checkstyle:check` (lenient config in
 [`config/checkstyle/checkstyle.xml`](config/checkstyle/checkstyle.xml)) and
 `spotbugs:check` to the `verify` phase. CI runs this on every trigger.
+
+> **JDK note:** run this profile with the **JDK 8** the project targets (as the CI
+> `quality` job does). The pinned SpotBugs 4.7.3.2 bundles an ASM that cannot
+> parse JDK 17+ standard-library class files (it fails locally with
+> `Unsupported class file major version`). `setup-env` installs JDK 8 only when
+> a JDK is already absent - it will **not** replace an installed JDK 17+ - so, if
+> your machine has a modern JDK, run the gate on a JDK 8 (e.g. via the `quality`
+> CI job or a dedicated JDK 8). Checkstyle itself is JDK agnostic. See
+> [`docs/architecture.md`](docs/architecture.md).
 
 ---
 
