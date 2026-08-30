@@ -53,6 +53,8 @@ See also:
 Key technical decisions:
 - **Java 8 bytecode** (`maven.compiler.source/target=8`) per the task specification.
   Compiles natively on JDK 8 in CI (no `--release`, which is unsupported on javac 8).
+- **TestNG pinned to 7.5.1** — the last release with Java 8 bytecode (7.6+ is
+  compiled for Java 11 and would fail JDK 8 (`cannot access org.testng.annotations.*`)).
 - **Maven Wrapper** (`./mvnw`) for reproducible builds with **no global Maven**.
 - **WebDriverManager** resolves the exact ChromeDriver matching the installed
   Chrome – no hard-coded driver versions.
