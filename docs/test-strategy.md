@@ -32,18 +32,21 @@ present, internet available for the API/UI systems under test.
 | **Live site update breaks tests** | **Explicitly accepted & bounded (see §8).** Full suite runs on a **nightly** schedule so drift is caught within 24 h; smoke gate keeps PR feedback fast; live-only API tests have a **deterministic offline twin** served by WireMock (`-Denv=stub`) to decouple "test logic is correct" from "the live host is healthy" |
 
 ## 5. Test tiers & CI right-sizing
-To keep PR feedback fast while the full value is still delivered on every merge,
-tests are tagged with **TestNG groups** and executed in tiers:
+The CI runs a **full QA / test build on every trigger** (push, PR, nightly,
+manual): static analysis, then the full Windows + Linux clean-environment
+lifecycles (all tests), then the Allure report publish. TestNG groups tag the
+tests so suites can also be run selectively on demand:
 
-| Tier | Group / suite | Trigger | Typical duration |
+| Tier | Group / suite | CI trigger | Typical duration |
 |---|---|---|---|
-| **Smoke gate** | `smoke.xml` (`smoke` group: unit + API + core UI test) | every push/PR | ~2-3 min |
-| **Full regression** | `testng.xml` (every test) | merge to master, **nightly `0 2 * * *`**, manual dispatch | ~5-8 min per OS |
+| **Smoke gate** | `smoke.xml` (`smoke` group: unit + API + core UI test) | every push/PR (fast early feedback) | ~2-3 min |
+| **Full regression** | `testng.xml` (every test) | every push/PR + **nightly `0 2 * * *`** + manual dispatch, on both Windows and Linux | ~5-8 min per OS |
 | **Deterministic API** | `api-stub.xml` + `-Denv=stub` (WireMock, offline) | every PR (CI asserts it), on demand | seconds |
 
-A PR therefore requires only the static-analysis gate + the smoke gate; the
-clean-environment full lifecycles (Windows + Linux) and the GitHub Pages report
-publish run on merges and nightly.
+Every build therefore includes the full clean-environment lifecycles on Windows
+and Linux plus the GitHub Pages report publish; PRs get the same full QA signal
+(no separate fast-only path), and the cheap smoke gate still gives the quickest
+early feedback. The Pages **deploy** itself is gated to `master`.
 
 ## 6. Negative / edge-case handling
 - **Decimal formats**: `DecimalParser` normalises `36,29` / `1.234,56` / `36.29` / API decimals → `BigDecimal`.
@@ -77,5 +80,5 @@ publish run on merges and nightly.
 | Test orchestration | TestNG (parallel-safe, listeners, retry) |
 | Logging | Log4j2 (slf4j façade) |
 | Reporting | Allure + Surefire (+ companion environment/categories files) |
-| CI/CD | GitHub Actions: tiered smoke gate + full Windows/Linux clean-env lifecycles + nightly schedule + GitHub Pages report publish + optional Docker |
+| CI/CD | GitHub Actions: full QA build on every trigger - checkstyle/SpotBugs gate + full Windows/Linux clean-env lifecycles + nightly schedule + GitHub Pages report publish (deploy gated to master) + optional Docker |
 | Config | 12-factor properties + env/system overrides |

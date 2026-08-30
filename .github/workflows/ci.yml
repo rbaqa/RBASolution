@@ -1,11 +1,11 @@
 name: RBA QA CI
 
 # ---------------------------------------------------------------------------
-# CI tiering:
-#   PR / short-lived events   -> smoke gate only (fast, high-value signal)
-#   push to master / nightly  -> smoke gate + full clean-env regression on
-#                                Windows and Linux + Allure report publish
-#   every run                 -> static analysis gate (checkstyle + SpotBugs)
+# CI: full QA / test build on every trigger.
+#   every run -> static analysis gate (checkstyle + SpotBugs)
+#             -> Windows lifecycle (clean env, full regression)
+#             -> Linux lifecycle (clean env, full regression)
+#             -> Allure report publishing (deployed to Pages on master)
 #
 # Suite files map to tiers:
 #   smoke.xml    -> unit + API + core UI tests tagged with the 'smoke' group
@@ -96,9 +96,8 @@ jobs:
           if-no-files-found: ignore
 
   # ---------------------------------------------------------------------------
-  # Full regression on a CLEAN environment. Runs on push to master, the nightly
-  # schedule and manual dispatch - NOT on pull requests (the smoke gate is the
-  # PR feedback loop).
+  # Full regression on a CLEAN environment. Runs on EVERY trigger (push, PR,
+  # schedule, manual dispatch) so every build surfaces the same QA signal.
   # ---------------------------------------------------------------------------
 
   # Full clean-environment lifecycle on Windows:
@@ -107,7 +106,6 @@ jobs:
   #   server returns to its clean state with ONLY reports remaining).
   windows-clean-env-run:
     name: Windows lifecycle (setup > test > report > teardown)
-    if: github.event_name != 'pull_request'
     runs-on: windows-latest
     timeout-minutes: 30
 
@@ -198,7 +196,6 @@ jobs:
   # ---------------------------------------------------------------------------
   linux-clean-env-run:
     name: Linux lifecycle (setup > test > report > teardown)
-    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -276,8 +273,14 @@ jobs:
   # ---------------------------------------------------------------------------
   # Publish the Allure report to GitHub Pages so it gets a stable, linkable URL:
   #   https://rbaqa.github.io/RBASolution/
-  # Generated from the Linux lifecycle run (the full regression), not the PR
-  # smoke gate, so the published report always reflects a complete run.
+  # Generated from the full regression (Windows + Linux lifecycles), not the
+  # smoke gate, and runs on EVERY trigger (push, PR, nightly, manual) so the
+  # report-producing pipeline is validated on every build.
+  #
+  # The final deployment (actions/deploy-pages) populates the single Pages site
+  # for the repo, so it is gated to runs on 'master' (push/schedule/manual) -
+  # PR runs generate + upload the report artifact but do NOT overwrite the live
+  # linkable URL with branch content.
   #
   # Uses the modern, officially-supported Pages deployment (actions/deploy-pages)
   # backed by the Pages API - no branch commits and no token-in-URL, so it works
@@ -287,14 +290,10 @@ jobs:
   #   Settings -> Pages -> Source: "GitHub Actions"
   #   (NOT "Deploy from a branch"). That's the only manual step; no branch or
   #   workflow/API config is needed after that.
-  #
-  # The job runs only when the workflow was triggered on master from a
-  # push/schedule/manual dispatch.
   # ---------------------------------------------------------------------------
   allure-report-pages:
     name: Publish Allure report to GitHub Pages
-    needs: linux-clean-env-run
-    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    needs: [windows-clean-env-run, linux-clean-env-run]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -334,4 +333,5 @@ jobs:
 
       - name: Deploy to GitHub Pages
         id: deployment
+        if: github.ref == 'refs/heads/master'
         uses: actions/deploy-pages@v4

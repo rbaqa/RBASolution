@@ -224,22 +224,27 @@ Each run also writes Allure **companion files** into `reports/allure-results`:
 |---|---|
 | GitHub Actions | [![RBA QA CI](https://github.com/rbaqa/RBASolution/actions/workflows/ci.yml/badge.svg)](https://github.com/rbaqa/RBASolution/actions/workflows/ci.yml) |
 
-The [`ci.yml`](.github/workflows/ci.yml) workflow is **tiered** so PR feedback
-stays fast while full validation still runs on every merge:
+The [`ci.yml`](.github/workflows/ci.yml) workflow runs a **full QA / test build
+on every trigger** (push, PR, nightly, manual): static analysis, then both
+clean-environment lifecycles (Windows + Linux) running the *full* regression,
+then the Allure report publish:
 
-| Tier | Runs on | Scope |
+| Job | Runs on | Scope |
 |---|---|---|
 | `quality` | every trigger | checkstyle + SpotBugs (`./mvnw -Pquality verify`) |
-| `test` (smoke gate) | every trigger (push, PR, nightly, manual) | `smoke.xml` - unit + API + core UI, headless; also asserts the deterministic WireMock stub tier |
-| `windows-clean-env-run` | merge to master, nightly, manual | full `testng.xml` regression in a **clean provisioned environment** (setup → test → report → teardown) |
-| `linux-clean-env-run` | merge to master, nightly, manual | full regression in a clean provisioned environment |
-| `allure-report-pages` | after the Linux full regression | regenerates the Allure HTML and publishes it to **GitHub Pages** |
+| `test` (smoke gate) | every trigger | `smoke.xml` - unit + API + core UI, headless; also asserts the deterministic WireMock stub tier (`-Denv=stub`) |
+| `windows-clean-env-run` | every trigger | full `testng.xml` regression in a **clean provisioned environment** (setup → test → report → teardown) |
+| `linux-clean-env-run` | every trigger | full regression in a clean provisioned environment |
+| `allure-report-pages` | after both lifecycles | regenerates the Allure HTML and publishes it to **GitHub Pages** |
 
-- PRs run **only** `quality` + the smoke gate (~2-3 min); full Windows/Linux
-  clean-environment lifecycles run on push to `master`, on the **nightly
-  schedule** (`0 2 * * *`), and on `workflow_dispatch`.
-- Live-site drift is caught daily: the nightly full regression exercises the
-  real bank site (and Wikipedia) end-to-end.
+- Every push and pull request gets the same full Windows + Linux clean-environment
+  regression, so there is no separate "fast PR-only" path - every build is a full
+  QA signal, with the cheap smoke gate giving quick early feedback plus the
+  deterministic offline stub-tier check.
+- The **live Pages deploy** is gated to `master` (push/schedule/manual): PR runs
+  generate and upload the report artifact but do not overwrite the live linkable
+  URL. Live-site drift is also caught **nightly** (`0 2 * * *`), which exercises
+  the real bank site (and Wikipedia) end-to-end.
 
 #### Live Allure report (GitHub Pages)
 
