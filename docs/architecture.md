@@ -28,10 +28,13 @@ rba-task/
     ├── main/java/techrba/
     │   ├── config/ConfigManager.java
     │   ├── util/DecimalParser.java
+    │   ├── util/DateSanity.java
     │   └── converter/WikipediaJsonToXml.java
     ├── main/resources/
     │   ├── log4j2.xml
-    │   └── config/test-config.properties   # classpath fallback of config
+    │   └── config/                        # classpath fallback of config
+    │       ├── test-config.properties
+    │       └── test-config-stub.properties
     └── test/
         ├── java/techrba/
         │   ├── annotation/Requirement.java    # RTM traceability annotation
@@ -94,6 +97,10 @@ the one present (`SessionNotCreatedException`). Override any time with
 `DecimalParser` normalises currency figures expressed with European comma
 (`36,29`), Croatian/European grouping (`1.234,56`) or US/API dot (`0.830960`) into
 `BigDecimal`. This keeps currency assertions robust against locale formatting.
+
+`DateSanity` checks that the exchange date shown by the calculator is fresh
+(not stale) and warns when the run lands on a non-banking day, so a date-driven
+assertion is not silently wrong over weekends/holidays.
 
 ### Conversion (`techrba.converter`)
 `WikipediaJsonToXml` converts a Wikipedia API JSON response into a **guaranteed

@@ -37,6 +37,7 @@ See also:
 │  main/java/techrba                                                │
 │   ├── config/ConfigManager        (externalised 12-factor config) │
 │   ├── util/DecimalParser          (locale-safe number parsing)    │
+│   ├── util/DateSanity             (banking-day / date freshness)  │
 │   └── converter/WikipediaJsonToXml (JSON → valid XML)             │
 │                                                                   │
 │  test/java/techrba                                                 │
