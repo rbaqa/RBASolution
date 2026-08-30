@@ -21,7 +21,7 @@ public class ExchangeCalculatorSwitchCurrencyTest extends BaseCalculatorTest {
     private static final String USD_ID = "840";
     private static final int AMOUNT = 100;
 
-    @Test(groups = {"selenium", "ui", "exchange"})
+    @Test(groups = {"selenium", "ui", "exchange", "regression"})
     @Description("Click #switchCurrency to swap EUR/USD pair and recalculate")
     @Requirement({"S8"})
     public void switchCurrencySwapsPairAndRecalculates() {

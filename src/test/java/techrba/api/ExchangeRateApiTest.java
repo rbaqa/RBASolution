@@ -1,9 +1,12 @@
 package techrba.api;
 
+import com.github.tomakehurst.wiremock.WireMockServer;
+
 import io.qameta.allure.Description;
 import io.qameta.allure.Step;
 import io.restassured.http.ContentType;
 import io.restassured.path.json.JsonPath;
+import org.testng.annotations.AfterClass;
 import org.testng.annotations.Test;
 import org.testng.asserts.SoftAssert;
 
@@ -15,6 +18,12 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.containing;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.options;
 
 /**
  * Postman / REST task - Basic REST.
@@ -31,15 +40,73 @@ public class ExchangeRateApiTest extends BaseApiTest {
     private static final String CALC_RESOURCE_URL = "https://www.rba.hr/alati/tecajni-kalkulator";
     private static final int RESPONSE_TIME_LIMIT_MS = 5000;
 
+    /**
+     * Deterministic offline tier: when {@code api.stub=true} (e.g. run with
+     * {@code -Denv=stub}, see {@code config/test-config-stub.properties}) the
+     * postman/REST example is served by a local WireMock server with recorded
+     * RBA-style responses instead of the live site, so REST tests run offline,
+     * fast and deterministically. Live runs keep {@code CALC_RESOURCE_URL}.
+     */
+    private static final boolean STUB_MODE = ConfigManager.getBoolean("api.stub");
+    private static WireMockServer wireMockServer;
+
     @Override
     protected io.restassured.specification.RequestSpecification buildDefaultSpec() {
+        if (STUB_MODE) {
+            ensureStubServerStarted();
+        }
         io.restassured.specification.RequestSpecification base = super.buildDefaultSpec();
-        base.baseUri(CALC_RESOURCE_URL);
+        base.baseUri(STUB_MODE ? wireMockServer.baseUrl() : CALC_RESOURCE_URL);
         base.contentType(ContentType.URLENC);
         return base;
     }
 
-    @Test(groups = {"api", "exchange"})
+    @AfterClass(alwaysRun = true)
+    public void stopStubServer() {
+        if (wireMockServer != null && wireMockServer.isRunning()) {
+            wireMockServer.stop();
+            LOG.info("Stopped WireMock calendar stub server");
+        }
+    }
+
+    /** Lazy-start the WireMock server and its recorded response stubs once. */
+    private static synchronized void ensureStubServerStarted() {
+        if (wireMockServer == null) {
+            wireMockServer = new WireMockServer(options().dynamicPort());
+            wireMockServer.start();
+            configureStubs();
+            LOG.info("STUB MODE: serving recorded RBA responses from {}",
+                    wireMockServer.baseUrl());
+        }
+    }
+
+    /**
+     * Records the RBA-style JSON responses the UI/REST calculator expects
+     * ({@code form.exchangeRate}, {@code form.currency2Ammount}) for the two
+     * smoke transactions - buy GBP (currency1Id 978) and sell USD (currency1Id
+     * 840). Values are mutually consistent: amount = rate * input.
+     */
+    private static void configureStubs() {
+        // Discriminate the two transactions by the sent URL-encoded form body and
+        // reply with a recorded RBA-style JSON payload (form.exchangeRate /
+        // form.currency2Ammount). WireMock string matchers use a full-string
+        // regex, so a plain substring check ('containing') is used.
+        wireMockServer.stubFor(post(urlPathEqualTo("/"))
+                .withRequestBody(containing("currency1Id=978"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"form\":{\"exchangeRate\":\"0.8327\",\"currency2Ammount\":\"33.31\"}}")));
+
+        wireMockServer.stubFor(post(urlPathEqualTo("/"))
+                .withRequestBody(containing("currency1Id=840"))
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"form\":{\"exchangeRate\":\"0.8314\",\"currency2Ammount\":\"83.14\"}}")));
+    }
+
+    @Test(groups = {"api", "exchange", "smoke", "regression"})
     @Description("Buy GBP via REST - read exchange rate and final amount")
     @Requirement({"P1"})
     public void buyGbpViaRest() {
@@ -54,7 +121,7 @@ public class ExchangeRateApiTest extends BaseApiTest {
         assertConsistency("BUY GBP (REST)", amount, result);
     }
 
-    @Test(groups = {"api", "exchange"})
+    @Test(groups = {"api", "exchange", "smoke", "regression"})
     @Description("Sell USD via REST - read exchange rate and final amount")
     @Requirement({"P1"})
     public void sellUsdViaRest() {
@@ -73,7 +140,7 @@ public class ExchangeRateApiTest extends BaseApiTest {
     private ExchangeResult calculateExchange(String source, String c1, int amount,
                                              String c2, int mode) {
         long start = System.currentTimeMillis();
-        JsonPath json = givenSpec().spec(spec)
+        JsonPath json = givenSpec().spec(currentSpec())
                 .queryParam("p_p_id", "tecajKalkulator_WAR_calculatorsportlet")
                 .queryParam("p_p_lifecycle", "2")
                 .queryParam("p_p_state", "normal")

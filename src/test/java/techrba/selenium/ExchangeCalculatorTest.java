@@ -32,7 +32,7 @@ import java.math.RoundingMode;
  * Implemented with Selenium WebDriver + TestNG only (no JavaScript Executor).
  * All assertions validate values are positive and internally consistent.</p>
  */
-@Test(groups = {"selenium", "ui", "exchange", "flaky"})
+@Test(groups = {"selenium", "ui", "exchange", "flaky", "smoke", "regression"})
 public class ExchangeCalculatorTest extends BaseTest {
 
     private static final BigDecimal EXPECTED_MIN_RATE = BigDecimal.valueOf(0.001);

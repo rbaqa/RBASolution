@@ -27,14 +27,14 @@ public class DecimalParserTest {
         };
     }
 
-    @Test(dataProvider = "parseCases", groups = "unit")
+    @Test(dataProvider = "parseCases", groups = {"unit", "smoke", "regression"})
     public void parseHandlesLocaleFormats(String input, String expected) {
         BigDecimal actual = DecimalParser.parse(input);
         Assert.assertEquals(actual, new BigDecimal(expected).setScale(4, RoundingMode.HALF_UP),
                 "Parsing failed for input: " + input);
     }
 
-    @Test(expectedExceptions = IllegalArgumentException.class, groups = "unit")
+    @Test(expectedExceptions = IllegalArgumentException.class, groups = {"unit", "smoke", "regression"})
     public void parseThrowsOnEmptyInput() {
         DecimalParser.parse("");
     }

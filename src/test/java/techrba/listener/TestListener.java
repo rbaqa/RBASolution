@@ -11,6 +11,7 @@ import org.testng.ITestListener;
 import org.testng.ITestResult;
 
 import techrba.base.BaseTest;
+import techrba.reporting.AllureReporting;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -74,6 +75,9 @@ public class TestListener implements ITestListener {
                 context.getPassedTests().size(),
                 context.getFailedTests().size(),
                 context.getSkippedTests().size());
+        // Fresh environment/categories companion files for the Allure report
+        // (idempotent - last write wins, safe under parallel suites).
+        AllureReporting.writeCompanionFiles();
     }
 
     /**

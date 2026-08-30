@@ -30,7 +30,7 @@ public class ExchangeCalculatorRateTypesTest extends BaseCalculatorTest {
     private static final String TO_USD = "840";
     private static final int AMOUNT = 100;
 
-    @Test(groups = {"selenium", "ui", "exchange"})
+    @Test(groups = {"selenium", "ui", "exchange", "regression"})
     @Description("Kupovni/Srednji/Prodajni differ and Srednji hides the 'Za efektivu' section")
     @Requirement({"S8"})
     public void rateTypesProduceSensibleResults() {
@@ -64,7 +64,7 @@ public class ExchangeCalculatorRateTypesTest extends BaseCalculatorTest {
                         + " and Prodajni " + prodajni);
     }
 
-    @Test(groups = {"selenium", "ui", "exchange"}, dependsOnMethods = "rateTypesProduceSensibleResults")
+    @Test(groups = {"selenium", "ui", "exchange", "regression"}, dependsOnMethods = "rateTypesProduceSensibleResults")
     @Description("Srednji tecaj hides the 'Za efektivu' (acctContainer) section")
     @Requirement({"S8"})
     public void srednjiModeHidesEffectiveSection() {

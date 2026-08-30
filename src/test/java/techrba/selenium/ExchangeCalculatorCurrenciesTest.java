@@ -26,7 +26,7 @@ public class ExchangeCalculatorCurrenciesTest extends BaseCalculatorTest {
     private static final BigDecimal MIN_RATE = BigDecimal.valueOf(0.000001);
     private static final int AMOUNT = 100;
 
-    @Test(groups = {"selenium", "ui", "exchange"})
+    @Test(groups = {"selenium", "ui", "exchange", "regression"})
     @Description("Convert EUR -> CHF via the calculator and verify rate/amount consistency")
     @Requirement({"S8"})
     public void convertEurToChf() {
@@ -34,7 +34,7 @@ public class ExchangeCalculatorCurrenciesTest extends BaseCalculatorTest {
         verifyConversion(calc, "EUR -> CHF", "978", "756", "CHF");
     }
 
-    @Test(groups = {"selenium", "ui", "exchange"})
+    @Test(groups = {"selenium", "ui", "exchange", "regression"})
     @Description("Convert EUR -> JPY via the calculator and verify rate/amount consistency")
     @Requirement({"S8"})
     public void convertEurToJpy() {
@@ -42,7 +42,7 @@ public class ExchangeCalculatorCurrenciesTest extends BaseCalculatorTest {
         verifyConversion(calc, "EUR -> JPY", "978", "392", "JPY");
     }
 
-    @Test(groups = {"selenium", "ui", "exchange"})
+    @Test(groups = {"selenium", "ui", "exchange", "regression"})
     @Description("Convert USD -> CHF via the calculator and verify rate/amount consistency")
     @Requirement({"S8"})
     public void convertUsdToChf() {

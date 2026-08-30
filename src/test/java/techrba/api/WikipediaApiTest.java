@@ -46,14 +46,14 @@ public class WikipediaApiTest extends BaseApiTest {
     /** Reusable Wikipedia search spec (generator=search + prop=info, per the task). */
     @Step("Build Wikipedia search spec")
     private io.restassured.specification.RequestSpecification searchSpec(int limit) {
-        return givenSpec().spec(this.spec)
+        return givenSpec().spec(currentSpec())
                 .queryParam("generator", "search")
                 .queryParam("gsrsearch", ConfigManager.getRequired("wikipedia.search.query"))
                 .queryParam("gsrlimit", limit)
                 .queryParam("prop", "info");
     }
 
-    @Test(groups = {"api", "wikipedia"})
+    @Test(groups = {"api", "wikipedia", "smoke", "regression"})
     @Description("Wikipedia search for 'Raiffeisen' - validate 200, response time, pages object, title")
     @Requirement({"P2", "P3", "P4", "P5", "P6"})
     public void wikipediaSearchReturnsExpectedStructureAndTitle() {
@@ -95,7 +95,7 @@ public class WikipediaApiTest extends BaseApiTest {
         soft.assertAll();
     }
 
-    @Test(groups = {"api", "wikipedia"},
+    @Test(groups = {"api", "wikipedia", "smoke", "regression"},
             dependsOnMethods = "wikipediaSearchReturnsExpectedStructureAndTitle")
     @Description("Schema validation of the Wikipedia response against a JSON Schema")
     public void wikipediaResponseMatchesJsonSchema() {
@@ -107,7 +107,7 @@ public class WikipediaApiTest extends BaseApiTest {
                 .body(matchesJsonSchemaInClasspath("schemas/wikipedia-response-schema.json"));
     }
 
-    @Test(groups = {"api", "wikipedia", "performance"})
+    @Test(groups = {"api", "wikipedia", "performance", "smoke", "regression"})
     @Description("Performance smoke: repeated search calls complete well below the 5 second threshold")
     public void wikipediaPerformanceSmoke() {
         SoftAssert soft = new SoftAssert();

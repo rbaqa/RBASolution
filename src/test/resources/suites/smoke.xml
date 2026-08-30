@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite name="RBA Smoke tier (unit + API + core UI)" verbose="1" parallel="tests" thread-count="2">
+
+    <!-- Fast pipeline gate: runs only tests tagged with the 'smoke' group.
+         This tier is intentionally small so PRs get a fast, high-value signal;
+         the full regression suites (testng.xml) run on merge to master and on
+         the nightly schedule. -->
+    <listeners>
+        <listener class-name="techrba.listener.TestListener"/>
+        <listener class-name="techrba.listener.TestSummaryListener"/>
+        <listener class-name="techrba.retry.AnnotationTransformer"/>
+    </listeners>
+
+    <test name="Unit + API Tests (REST) - smoke">
+        <groups>
+            <run>
+                <include name="smoke"/>
+            </run>
+        </groups>
+        <packages>
+            <package name="techrba.unit"/>
+            <package name="techrba.api"/>
+        </packages>
+    </test>
+
+    <test name="UI Test - Exchange Calculator (Selenium) - smoke">
+        <groups>
+            <run>
+                <include name="smoke"/>
+            </run>
+        </groups>
+        <packages>
+            <package name="techrba.selenium"/>
+        </packages>
+    </test>
+</suite>

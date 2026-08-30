@@ -17,7 +17,10 @@ rba-task/
 ├── mvnw / mvnw.cmd / .mvn/        # Maven wrapper (reproducible build)
 ├── README.md                      # entry point
 ├── docs/                          # this documentation + strategy + RTM
-├── config/test-config.properties  # editable 12-factor configuration
+├── config/                         # editable configuration + quality gate
+│   ├── test-config.properties      #   base 12-factor configuration
+│   ├── test-config-stub.properties #   'stub' profile = WireMock offline API tier
+│   └── checkstyle/checkstyle.xml   #   lenient checkstyle rules (-Pquality)
 ├── postman/                       # Postman collection + environment
 ├── docker/                        # optional containerised run
 ├── reports/                       # reports output (gitignored)
@@ -51,6 +54,7 @@ rba-task/
         │   ├── api/ExchangeRateApiTest.java
         │   ├── retry/RetryAnalyzer.java, AnnotationTransformer.java
         │   ├── listener/TestListener.java, TestSummaryListener.java
+        │   ├── reporting/AllureReporting.java  # environment.properties + categories.json
         │   └── unit/DecimalParserTest.java, WikipediaJsonToXmlTest.java
         └── resources/
             ├── suites/*.xml
@@ -128,13 +132,21 @@ place per page.
   otherwise).
 - `ExchangeRateApiTest` – the **Basic REST** deliverable: replicates the Selenium
   calculator example by calling the same `calculateExchangeRate` REST endpoint the
-  UI uses, for both buy- and sell-transactions.
+  UI uses, for both buy- and sell-transactions. When `api.stub=true` (profile
+  `-Denv=stub`) the endpoint is served **offline by WireMock** with recorded
+  RBA-style JSON responses, so the REST tests are deterministic, instant and
+  independent of live-site health; live runs keep the real endpoint.
 
 ### Cross-cutting (retry/listener)
 - `RetryAnalyzer` + `AnnotationTransformer` retry transient flaky tests (max 2),
   without masking real defects (still reported failed after retries).
 - `TestListener` logs every test lifecycle event and captures a screenshot on UI
   failure into both Allure and `reports/screenshots`.
+- `AllureReporting` writes the Allure **companion files** into
+  `reports/allure-results` on every run: `environment.properties` (OS, JDK,
+  browser, Git ref, CI run URL, active profile) and `categories.json` (failure
+  classification: product defect / browser-driver problem / external network /
+  broken test / skipped), captured from `WebDriverFactory` at driver creation.
 
 ## Test isolation & determinism
 - Config externalised (no hard-coded URLs/values in tests).
@@ -146,4 +158,13 @@ place per page.
 ## Report toolchain
 Surefire (TestNG) → classic reports; Allure adapter captures steps, attachments
 and screenshots → `allure:report` / `allure:serve`. Both are uploaded as CI
-artifacts on every run.
+artifacts on every run. `environment.properties` + `categories.json` make the
+Allure HTML self-describing. On merges/nightly the workflow publishes the full
+report to a stable linkable URL via **GitHub Pages** (`https://rbaqa.github.io/RBASolution/`).
+
+## Test tiers & CI/CD
+Tests are tagged with TestNG groups (`smoke` / `regression` + functional tags)
+and executed in tiers - see [`test-strategy.md`](test-strategy.md) §5 and
+[`../.github/workflows/ci.yml`](../.github/workflows/ci.yml) for the full matrix.
+The `-Pquality` Maven profile binds a lenient Checkstyle + SpotBugs gate to
+`verify`; CI runs it on every trigger.

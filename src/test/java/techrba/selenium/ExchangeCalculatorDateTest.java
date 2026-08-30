@@ -20,7 +20,7 @@ import techrba.pages.ExchangeCalculatorPage;
  */
 public class ExchangeCalculatorDateTest extends BaseCalculatorTest {
 
-    @Test(groups = {"selenium", "ui", "exchange"})
+    @Test(groups = {"selenium", "ui", "exchange", "regression"})
     @Description("The #dateVal label shows the date selected in the date picker")
     @Requirement({"S8"})
     public void dateLabelMirrorsSelectedDate() {

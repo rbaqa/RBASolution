@@ -13,9 +13,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Prints a compact "QA dashboard" summary of the whole run once the suite
@@ -28,7 +28,10 @@ public class TestSummaryListener implements ITestListener {
 
     private static final Logger LOG = LogManager.getLogger(TestSummaryListener.class);
 
-    private final List<Row> rows = new ArrayList<>();
+    // Parallel runs report from many threads at once, so the row list must be
+    // safe for concurrent append + iteration (CopyOnWriteArrayList also
+    // guarantees no null elements can slip into the backing array).
+    private final List<Row> rows = new CopyOnWriteArrayList<>();
 
     @Override
     public void onTestStart(ITestResult result) {
@@ -74,6 +77,9 @@ public class TestSummaryListener implements ITestListener {
         long failed = 0L;
         long skipped = 0L;
         for (Row r : rows) {
+            if (r == null) {
+                continue;
+            }
             switch (r.status) {
                 case "PASS":
                     passed++;

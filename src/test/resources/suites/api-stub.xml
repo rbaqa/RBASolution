@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite name="RBA API deterministic tier (WireMock stub)" verbose="1">
+    <listeners>
+        <listener class-name="techrba.listener.TestListener"/>
+        <listener class-name="techrba.listener.TestSummaryListener"/>
+        <listener class-name="techrba.retry.AnnotationTransformer"/>
+    </listeners>
+    <test name="Exchange Rate REST tests (stubbed, offline)">
+        <classes>
+            <class name="techrba.api.ExchangeRateApiTest"/>
+        </classes>
+    </test>
+</suite>

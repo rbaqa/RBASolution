@@ -18,7 +18,7 @@ import techrba.pages.ExchangeCalculatorPage;
  */
 public class ExchangeCalculatorInvalidInputTest extends BaseCalculatorTest {
 
-    @Test(groups = {"selenium", "ui", "exchange"})
+    @Test(groups = {"selenium", "ui", "exchange", "regression"})
     @Description("Typing text into the amount field displays NaN")
     @Requirement({"S8"})
     public void textAmountDisplaysNaN() {

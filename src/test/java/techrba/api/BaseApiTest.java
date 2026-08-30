@@ -33,12 +33,33 @@ public abstract class BaseApiTest {
 
     protected static final Logger LOG = LogManager.getLogger(BaseApiTest.class);
 
-    /** RestAssured spec that all API tests build on (set per-class in subclasses). */
-    protected RequestSpecification spec;
+    /**
+     * RestAssured spec that all API tests build on, built lazily and memoized.
+     * Built on first use (or via {@link #initBaseApi()}) so tests do not depend
+     * on {@code @BeforeClass} having run on the exact instance that later
+     * executes the test methods - TestNG group filtering with parallel suites
+     * may instantiate a class before the configuration pass, in which case a
+     * plain instance field set in {@code @BeforeClass} can still be null when
+     * the test runs.
+     */
+    private volatile RequestSpecification spec;
 
     @BeforeClass
     public void initBaseApi() {
-        this.spec = buildDefaultSpec();
+        currentSpec();
+    }
+
+    /** Lazily builds (once per instance, virtual dispatch into subclasses) and caches the spec. */
+    protected final RequestSpecification currentSpec() {
+        RequestSpecification local = spec;
+        if (local == null) {
+            synchronized (this) {
+                if (spec == null) {
+                    spec = buildDefaultSpec();
+                }
+            }
+        }
+        return spec;
     }
 
     protected RequestSpecification buildDefaultSpec() {

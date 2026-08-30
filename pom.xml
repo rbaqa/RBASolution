@@ -114,6 +114,16 @@
                 </exclusion>
             </exclusions>
         </dependency>
+
+        <!-- WireMock (JRE8 build) for the deterministic offline API tier:
+             start with -Denv=stub to serve recorded RBA responses instead of
+             hitting the live site. Java-8 compatible fat jar. -->
+        <dependency>
+            <groupId>com.github.tomakehurst</groupId>
+            <artifactId>wiremock-jre8-standalone</artifactId>
+            <version>2.35.0</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>
@@ -164,4 +174,59 @@
             </plugin>
         </plugins>
     </build>
+
+    <!-- Quality gate (opt-in): ./mvnw -Pquality verify. checkstyle (lenient
+         config in config/checkstyle/checkstyle.xml) and SpotBugs static
+         analysis over main AND test sources, bound to 'verify' so it runs
+         after compilation without executing tests. -->
+    <profiles>
+        <profile>
+            <id>quality</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-checkstyle-plugin</artifactId>
+                        <version>3.3.0</version>
+                        <configuration>
+                            <configLocation>${project.basedir}/config/checkstyle/checkstyle.xml</configLocation>
+                            <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                            <consoleOutput>true</consoleOutput>
+                            <failOnViolation>true</failOnViolation>
+                            <linkXRef>false</linkXRef>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>checkstyle-check</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>com.github.spotbugs</groupId>
+                        <artifactId>spotbugs-maven-plugin</artifactId>
+                        <version>4.7.3.2</version>
+                        <configuration>
+                            <effort>Default</effort>
+                            <threshold>Medium</threshold>
+                            <failOnError>true</failOnError>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>spotbugs-check</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>

@@ -7,8 +7,10 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.edge.EdgeOptions;
 import org.openqa.selenium.firefox.FirefoxOptions;
+import org.openqa.selenium.remote.RemoteWebDriver;
 
 import techrba.config.ConfigManager;
+import techrba.reporting.AllureReporting;
 
 import java.net.URL;
 import java.time.Duration;
@@ -50,6 +52,9 @@ public final class WebDriverFactory {
         }
 
         applyTimeouts(driver);
+        if (driver instanceof RemoteWebDriver) {
+            AllureReporting.recordBrowser(((RemoteWebDriver) driver).getCapabilities());
+        }
         return driver;
     }
 

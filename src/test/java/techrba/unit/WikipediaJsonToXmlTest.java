@@ -24,7 +24,7 @@ public class WikipediaJsonToXmlTest {
         return b.parse(new InputSource(new StringReader(xml)));
     }
 
-    @Test(groups = "unit")
+    @Test(groups = {"unit", "smoke", "regression"})
     public void numericKeysProduceValidXml() throws Exception {
         String json = "{\"query\":{\"pages\":{\"7353998\":{\"title\":\"Raiffeisen\",\"pageid\":7353998}}}}";
         String xml = WikipediaJsonToXml.convert(json);
@@ -32,7 +32,7 @@ public class WikipediaJsonToXmlTest {
         Assert.assertEquals(doc.getDocumentElement().getNodeName(), "response");
     }
 
-    @Test(groups = "unit")
+    @Test(groups = {"unit", "smoke", "regression"})
     public void arraysAreWrappedInItemElements() throws Exception {
         String json = "{\"list\":[10,20,30]}";
         String xml = WikipediaJsonToXml.convert(json);
@@ -40,7 +40,7 @@ public class WikipediaJsonToXmlTest {
         Assert.assertEquals(doc.getElementsByTagName("item").getLength(), 3);
     }
 
-    @Test(groups = "unit")
+    @Test(groups = {"unit", "smoke", "regression"})
     public void specialCharactersAreEscaped() throws Exception {
         String json = "{\"note\":\"a < b & c \\\"d\\\"\"}";
         String xml = WikipediaJsonToXml.convert(json);

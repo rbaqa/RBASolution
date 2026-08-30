@@ -26,36 +26,56 @@ present, internet available for the API/UI systems under test.
 | UI is JS-driven / rate rounded to 2 dp | Read authoritative hidden fields; waits on AJAX; rate-rounding-aware tolerance |
 | Cookie consent banner overlays page | Conditional OneTrust dismissal (no-op when absent) |
 | Wikipedia blocks default user-agents (403) | Send descriptive `User-Agent` |
-| Transient browser flakiness | Explicit waits, retry-analyzer (max 2), screenshot on failure |
+| Transient browser flakiness | Explicit waits, retry-analyzer (max `retry.max.count`), screenshot on failure |
 | Fresh CI runner resolves a ChromeDriver newer than the installed Chrome | `ChromeVersion` detects the installed major and pins the driver to it; `browser.chromedriver.version` forces a specific version |
 | Chromedriver shutdown timeout on Windows CI (teardown) | Tolerant teardown: a slow driver-server shutdown is logged as a warning, never fails the suite |
+| **Live site update breaks tests** | **Explicitly accepted & bounded (see §8).** Full suite runs on a **nightly** schedule so drift is caught within 24 h; smoke gate keeps PR feedback fast; live-only API tests have a **deterministic offline twin** served by WireMock (`-Denv=stub`) to decouple "test logic is correct" from "the live host is healthy" |
 
-## 5. Negative / edge-case handling
+## 5. Test tiers & CI right-sizing
+To keep PR feedback fast while the full value is still delivered on every merge,
+tests are tagged with **TestNG groups** and executed in tiers:
+
+| Tier | Group / suite | Trigger | Typical duration |
+|---|---|---|---|
+| **Smoke gate** | `smoke.xml` (`smoke` group: unit + API + core UI test) | every push/PR | ~2-3 min |
+| **Full regression** | `testng.xml` (every test) | merge to master, **nightly `0 2 * * *`**, manual dispatch | ~5-8 min per OS |
+| **Deterministic API** | `api-stub.xml` + `-Denv=stub` (WireMock, offline) | every PR (CI asserts it), on demand | seconds |
+
+A PR therefore requires only the static-analysis gate + the smoke gate; the
+clean-environment full lifecycles (Windows + Linux) and the GitHub Pages report
+publish run on merges and nightly.
+
+## 6. Negative / edge-case handling
 - **Decimal formats**: `DecimalParser` normalises `36,29` / `1.234,56` / `36.29` / API decimals → `BigDecimal`.
 - **Empty/absent fields**: guarded (fail with clear messages, or retry).
 - **Zero/negative rate**: assert positivity.
 - **XML safety**: numeric JSON keys and illegal characters sanitised so output is always well-formed.
 
-## 6. Reporting
-- TestNG/Surefire XML+HTML, **Allure** report (steps, screenshots on UI failure),
+## 7. Reporting
+- TestNG/Surefire XML+HTML, **Allure** report (steps, screenshots on UI failure,
+  **environment.properties** and **categories.json** companion files),
   structured **Log4j2** logs, CI artifacts on every pipeline run.
+- The Allure HTML is automatically published to a stable, **linkable URL on
+  GitHub Pages** after every full Linux regression: `https://rbaqa.github.io/RBASolution/`.
 
-## 7. Future / backlog (not in initial scope)
+## 8. Future / backlog (not in initial scope)
 - Selenium **Grid / distributed** execution.
 - Contract testing against a formal OpenAPI spec.
 - Shift-left security scanning (dependency + secret) in CI.
 - Accessibility smoke checks for the calculator.
 - Watchdog/Daemon for environment health of the bank's QA environments.
 
-## 8. Tooling matrix
+## 9. Tooling matrix
 | Concern | Tool |
 |---|---|
 | Language / runtime | Java 8 bytecode |
 | Build | Maven + wrapper |
 | UI automation | Selenium 4 + WebDriverManager |
 | API testing | REST-assured + JSON-Schema-validator |
+| Offline/deterministic API | WireMock (JRE8 build) - `-Denv=stub` |
+| Static analysis gate | Checkstyle + SpotBugs (`-Pquality verify`) |
 | Test orchestration | TestNG (parallel-safe, listeners, retry) |
 | Logging | Log4j2 (slf4j façade) |
-| Reporting | Allure + Surefire |
-| CI/CD | GitHub Actions (Linux gate + Linux & Windows clean-env lifecycles) + optional Docker |
+| Reporting | Allure + Surefire (+ companion environment/categories files) |
+| CI/CD | GitHub Actions: tiered smoke gate + full Windows/Linux clean-env lifecycles + nightly schedule + GitHub Pages report publish + optional Docker |
 | Config | 12-factor properties + env/system overrides |

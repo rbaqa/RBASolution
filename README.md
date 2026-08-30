@@ -117,14 +117,28 @@ Inside GitHub Actions the script also exports `JAVA_HOME`/`PATH` via
 .\mvnw.cmd test
 ```
 
-### 3.3 Run a specific suite
+### 3.3 Run a specific suite / tier
 ```powershell
+# Fast gate: unit + API + core UI (methods tagged with the 'smoke' group) - what CI runs on PRs
+.\mvnw.cmd -Dsuite.file=smoke.xml test
+
+# Full regression: every test (default of the Maven build)
+.\mvnw.cmd -Dsuite.file=testng.xml test
+
 # API + unit only (no browser needed)
 .\mvnw.cmd -Dsuite.file=verify-unit-api.xml test
 
 # Selenium only
 .\mvnw.cmd -Dsuite.file=ui-only.xml test
+
+# Deterministic offline API tier: exchange-rate REST tests served by WireMock
+# stubs instead of the live site (instant, offline, never flaky)
+.\mvnw.cmd -Denv=stub -Dsuite.file=api-stub.xml test
 ```
+Test methods are tagged with **TestNG groups**: `smoke` (fast gate),
+`regression` (full suite), plus the functional tags `unit`/`api`/`ui`/`exchange`/
+`wikipedia`/`performance`. UI tests optionally carry `flaky` and are auto-retried
+(see `RetryAnalyzer`).
 
 ### 3.4 Override configuration (12-factor)
 Properties can be overridden without editing files:
@@ -151,6 +165,9 @@ Browser and grid are fully configurable (see `WebDriverFactory`):
 
 Environment profiles (12-factor): load `config/test-config-<env>.properties` on top of the base config:
 ```powershell
+# 'stub' profile = deterministic offline API tier (WireMock replaces the live RBA endpoint)
+.\mvnw.cmd -Denv=stub -Dsuite.file=api-stub.xml test
+
 .\mvnw.cmd -Denv=qa test      # or $env:TEST_ENV = "qa"
 ```
 
@@ -174,6 +191,20 @@ docker compose -f docker/docker-compose.yml up --build
 .\mvnw.cmd allure:report      # generates reports/allure-report
 .\mvnw.cmd allure:serve       # serves it locally in a browser
 ```
+Each run also writes Allure **companion files** into `reports/allure-results`:
+- `environment.properties` - OS, JDK, browser, Git ref, CI run URL and active
+  profile, shown in the report's "Environment" tab.
+- `categories.json` - classifies every failure (product defect, browser/driver
+  problem, external network issue, broken test, ...) so the report is readable
+  instead of a flat "failed" list.
+
+### 3.9 Quality gate (static analysis)
+```powershell
+.\mvnw.cmd -Pquality verify      # checkstyle + SpotBugs over main AND test sources (no tests run)
+```
+`-Pquality` binds `checkstyle:check` (lenient config in
+[`config/checkstyle/checkstyle.xml`](config/checkstyle/checkstyle.xml)) and
+`spotbugs:check` to the `verify` phase. CI runs this on every trigger.
 
 ---
 
@@ -183,19 +214,30 @@ docker compose -f docker/docker-compose.yml up --build
 |---|---|
 | GitHub Actions | [![RBA QA CI](https://github.com/rbaqa/RBASolution/actions/workflows/ci.yml/badge.svg)](https://github.com/rbaqa/RBASolution/actions/workflows/ci.yml) |
 
-The [`ci.yml`](.github/workflows/ci.yml) workflow:
-- Runs on push/PR to `main`/`master` (and via `workflow_dispatch`).
-- `test` (Linux): sets up JDK 8 + cached Maven, runs the full suite **headless**,
-  uploads Surefire + Allure results and failure screenshots as artifacts.
-- `windows-clean-env-run` (Windows): full clean-environment lifecycle for
-  servers with no pre-installed dependencies - `setup-env.ps1` provisions
-  (JDK 8 + Chrome), all tests run headless, reports are generated and uploaded,
-  then `setup-env.ps1 -Uninstall` tears the environment back down so **only
-  reports remain**.
-- `linux-clean-env-run` (Linux): same lifecycle contract on Ubuntu via
-  `setup-env.sh` (installs JDK 8 + Chrome with `apt` if missing) ->
-  run all tests -> `allure:report` -> upload artifacts ->
-  `setup-env.sh --uninstall` (keeps only reports).
+The [`ci.yml`](.github/workflows/ci.yml) workflow is **tiered** so PR feedback
+stays fast while full validation still runs on every merge:
+
+| Tier | Runs on | Scope |
+|---|---|---|
+| `quality` | every trigger | checkstyle + SpotBugs (`./mvnw -Pquality verify`) |
+| `test` (smoke gate) | every trigger (push, PR, nightly, manual) | `smoke.xml` - unit + API + core UI, headless; also asserts the deterministic WireMock stub tier |
+| `windows-clean-env-run` | merge to master, nightly, manual | full `testng.xml` regression in a **clean provisioned environment** (setup → test → report → teardown) |
+| `linux-clean-env-run` | merge to master, nightly, manual | full regression in a clean provisioned environment |
+| `allure-report-pages` | after the Linux full regression | regenerates the Allure HTML and publishes it to **GitHub Pages** |
+
+- PRs run **only** `quality` + the smoke gate (~2-3 min); full Windows/Linux
+  clean-environment lifecycles run on push to `master`, on the **nightly
+  schedule** (`0 2 * * *`), and on `workflow_dispatch`.
+- Live-site drift is caught daily: the nightly full regression exercises the
+  real bank site (and Wikipedia) end-to-end.
+
+#### Live Allure report (GitHub Pages)
+
+**https://rbaqa.github.io/RBASolution/**
+
+Published by the `allure-report-pages` job from the last full Linux regression.
+**One-time repo setup required:** GitHub → Settings → Pages → *Deploy from a
+branch* → `gh-pages / root`.
 
 ---
 
@@ -203,12 +245,14 @@ The [`ci.yml`](.github/workflows/ci.yml) workflow:
 
 Allure + TestNG reports land under:
 ```
-reports/allure-results/   (raw data, CI consumable)
+reports/allure-results/   (raw data + environment.properties + categories.json)
 reports/allure-report/    (generated HTML)
 target/surefire-reports/  (classic TestNG XML/HTML)
 reports/screenshots/      (UI failure screenshots)
 logs/rba-task.log         (structured logs)
 ```
+CI publishes the Allure report to a permanent, linkable URL via GitHub Pages:
+**https://rbaqa.github.io/RBASolution/** (see section 4).
 
 ---
 
@@ -218,3 +262,38 @@ The task's example figures reflect a particular trading date and the **Prodajni*
 (bank-sells-GBP) rate. Because rates change daily, the tests read and validate the
 **live** rate and amount from the same backend the UI calls, asserting positivity and
 internal consistency (amount ≈ rate × input) rather than hard-coding a static figure.
+
+---
+
+## 7. Live-site flakiness: what is expected and how it is handled
+
+The Selenium suite and the REST tests validate the **live RBA site** (and the
+Wikipedia API), so occasional environment-driven failures are an accepted,
+**explicit** part of the strategy rather than a surprise:
+
+**Accepted sources of flakiness**
+- The live site being temporarily slow, rate-limited or unavailable.
+- A dev/maintenance deploy or backend/API change happening mid-run.
+- Browser driver/site drift that CI provisioning cannot fully predict.
+- The UI polling a date-specific rate that changes daily.
+
+**How the suite keeps genuine failures reliable**
+1. **Value integrity**: assertions validate *properties* of the data (positive,
+   internally consistent rate × amount) instead of hard-coded fixtures.
+2. **Explicit waits** everywhere; page-load + explicit + implicit timeouts are
+   config tuneable. Screenshots and HTTP logs are captured on failure.
+3. **Retry policy** (`RetryAnalyzer`): only `ui`/`flaky` tests are retried (max
+   `retry.max.count`), so a transient UI blip does not fail a green build, while
+   genuine assertion failures stay red.
+4. **Tolerant teardown**: a stuck Chromedriver shutdown on CI is logged, not
+   fatal.
+5. **Deterministic offline tier** (`-Denv=stub`): the REST exchange-rate tests
+   can run against recorded **WireMock** responses - no network, no site, always
+   green - proving the test logic itself is sound independently of the live host.
+6. **Tiered CI**: PRs see the fast smoke gate; the full suite runs nightly so a
+   genuine regression is caught within 24h even if the live site misbehaves at a
+   given moment.
+7. **Live runs are monitored, not hidden**: a red nightly run that is a site
+   outage is labelled as external failure in Allure (see `categories.json`) and
+   re-run - a red PR found to be purely environmental is retried once before
+   investigation.
