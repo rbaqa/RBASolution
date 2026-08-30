@@ -28,7 +28,10 @@ rba-task/
     │   └── config/test-config.properties   # classpath fallback of config
     └── test/
         ├── java/techrba/
-        │   ├── base/BaseTest.java
+        │   ├── base/BaseTest.java            # thread-safe WebDriver lifecycle
+        │   ├── base/DriverWait.java          # shared explicit-wait helpers
+        │   ├── pages/HomePage.java           # Page Object: homepage + navigation
+        │   ├── pages/ExchangeCalculatorPage.java  # Page Object: calculator form
         │   ├── selenium/ExchangeCalculatorTest.java
         │   ├── api/WikipediaApiTest.java
         │   ├── api/ExchangeRateApiTest.java
@@ -62,17 +65,25 @@ valid XML** document. It sanitises every JSON key into a legal XML element name
 (numeric pageids are prefixed, e.g. `_7353998`) and wraps array elements in
 `<item>`. Both a CLI `main` and a unit-tested API are provided.
 
-### UI test layer (`techrba.base` + `techrba.selenium`)
-`BaseTest` supplies a **thread-local `WebDriver`** (parallel-safe), uses
-`WebDriverManager` to resolve ChromeDriver, configures Chrome Options (headless
-option for CI), and enforces implicit + explicit waits. `ExchangeCalculatorTest`
-drives the RBA "Tecajni kalkulator":
-- navigates from the homepage, dismissing the OneTrust cookie banner
-- switches to the new browser tab the calculator opens
-- buys **GBP** (Prodajni / bank sells) and sells **USD** (Kupovni / bank buys)
-- reads the exchange rate and final amount, asserting positivity + consistency
+### UI test layer (`techrba.base` + `techrba.pages` + `techrba.selenium`)
+The Selenium tests follow the **Page Object Model (POM)**:
 
-Only Selenium WebDriver is used – **no JavaScript Executor**, per the task rules.
+- `BaseTest` supplies a **thread-local `WebDriver`** (parallel-safe), uses
+  `WebDriverManager` to resolve ChromeDriver, configures Chrome Options (headless
+  option for CI), and enforces implicit waits. `DriverWait` centralises explicit
+  waits (timeout from config).
+- `HomePage` (Page Object) encapsulates the homepage: `open()`,
+  `dismissCookieBannerIfPresent()` (OneTrust consent overlay) and
+  `openExchangeCalculator()` (clicks the button, switches to the new tab).
+- `ExchangeCalculatorPage` (Page Object) encapsulates the calculator form
+  controls and results: `selectRateType`, `selectFromCurrency`,
+  `selectToCurrency`, `enterAmount`, `readExchangeRate`, `readConvertedAmount`.
+- `ExchangeCalculatorTest` is the test orchestration layer - it only talks in
+  terms of "buy GBP" / "sell USD" and never touches raw locators/WebElements,
+  keeping tests readable and robust to UI rework.
+
+Because Page Objects centralise locators, a UI change is fixed in exactly one
+place per page.
 
 ### API test layer (`techrba.api`)
 - `WikipediaApiTest` – verifies the 200, <5s response time, `pages` object,

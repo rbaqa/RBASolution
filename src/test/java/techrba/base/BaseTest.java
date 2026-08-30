@@ -12,7 +12,6 @@ import org.testng.annotations.BeforeSuite;
 
 import techrba.config.ConfigManager;
 
-import java.nio.file.Paths;
 import java.time.Duration;
 
 /**
@@ -89,13 +88,6 @@ public abstract class BaseTest {
         driver.manage().timeouts().pageLoadTimeout(
                 Duration.ofSeconds(ConfigManager.getInt("selenium.page.load.timeout.seconds")));
         return driver;
-    }
-
-    /** Loads the base URL of the application under test. */
-    protected void openApp() {
-        String url = ConfigManager.getRequired("app.base.url");
-        LOG.info("Opening application URL: {}", url);
-        getDriver().get(url);
     }
 
     /** Static access for listeners/reporting that need the current thread's driver. */
