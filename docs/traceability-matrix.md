@@ -34,7 +34,7 @@ Legend: ✅ Implemented (passing) · 🟡 Implemented (needs environment/browser
 ## C. Java program
 | ID | Requirement | Test | Status |
 |---|---|---|---|
-| J1 | JDK 1.8.261 (or similar) | `maven.compiler.release=8` | ✅ |
+| J1 | JDK 1.8.261 (or similar) | `maven.compiler.source/target=8` (compile natively on JDK 8; no `--release` flag) | ✅ |
 | J2 | Convert Wikipedia JSON results to valid XML | `WikipediaJsonToXml.convert(...)` | ✅ |
 | J3 | Output is valid/well-formed XML | `WikipediaJsonToXmlTest` (numeric keys, arrays, escaping) | ✅ |
 | Bonus | CLI usage (`<in> <out>`) | `main(...)` | ✅ |

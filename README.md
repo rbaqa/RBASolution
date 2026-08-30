@@ -51,7 +51,8 @@ See also:
 ```
 
 Key technical decisions:
-- **Java 8 bytecode** (`maven.compiler.release=8`) per the task specification.
+- **Java 8 bytecode** (`maven.compiler.source/target=8`) per the task specification.
+  Compiles natively on JDK 8 in CI (no `--release`, which is unsupported on javac 8).
 - **Maven Wrapper** (`./mvnw`) for reproducible builds with **no global Maven**.
 - **WebDriverManager** resolves the exact ChromeDriver matching the installed
   Chrome – no hard-coded driver versions.
