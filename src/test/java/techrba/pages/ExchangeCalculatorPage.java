@@ -4,8 +4,10 @@ import io.qameta.allure.Step;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.By;
+import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
 
@@ -67,8 +69,13 @@ public class ExchangeCalculatorPage {
     @Step("Enter amount {amount}")
     public ExchangeCalculatorPage enterAmount(int amount) {
         WebElement input = wait.get().until(ExpectedConditions.visibilityOfElementLocated(AMOUNT_INPUT));
-        input.clear();
-        input.sendKeys(String.valueOf(amount) + "\n");
+        input.sendKeys(Keys.chord(Keys.CONTROL, "a")); // select current value
+        input.sendKeys(String.valueOf(amount));
+        // Blur (TAB) instead of pressing Enter so the page does not submit/refresh
+        // and re-prepend a leading '0' to the displayed amount (040 / 0100).
+        new Actions(driver).sendKeys(Keys.TAB).perform();
+        LOG.debug("Amount field '#suma1' value after entering {} = '{}'",
+                amount, input.getAttribute("value"));
         waitForExchangeResult();
         return this;
     }
@@ -78,6 +85,7 @@ public class ExchangeCalculatorPage {
     public BigDecimal readExchangeRate() {
         waitForNonNullValue(EXCHANGE_RATE);
         String txt = driver.findElement(EXCHANGE_RATE).getAttribute("value");
+        LOG.debug("Raw exchange rate field value = '{}'", txt);
         return DecimalParser.parse(txt);
     }
 
@@ -86,6 +94,7 @@ public class ExchangeCalculatorPage {
     public BigDecimal readConvertedAmount() {
         waitForNonNullValue(RESULT_AMOUNT);
         String txt = driver.findElement(RESULT_AMOUNT).getAttribute("value");
+        LOG.debug("Raw converted amount field value = '{}'", txt);
         return DecimalParser.parse(txt);
     }
 
